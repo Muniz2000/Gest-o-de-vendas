@@ -78,12 +78,17 @@ def gerar_grafico_linhas():
 
     fig, ax = plt.subplots(figsize=(6, 4))
     sns.lineplot(x=produtos, y=quantidades, marker='o', ax=ax)
-    ax.set_xticklabels(produtos, rotation=45)
+
+    # Define ticks antes dos labels (corrige o UserWarning)
+    ax.set_xticks(range(len(produtos)))
+    ax.set_xticklabels(produtos, rotation=45, ha='right')
+
     ax.set_xlabel('Produto')
     ax.set_ylabel('Quantidade')
     ax.set_title('Vendas por Produto')
 
     return converter_grafico_para_base64(fig)
+
 
 # Função para gerar gráfico de barras (Vendas por Produto)
 def gerar_grafico_barras():
@@ -94,6 +99,32 @@ def gerar_grafico_barras():
 
     produtos = [v.produto for v in vendas]
     quantidades = [v.quantidade for v in vendas]
+
+    # Paleta personalizada
+    cores = sns.color_palette("husl", len(produtos))
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+
+    # Usa hue para manter cores sem FutureWarning
+    sns.barplot(
+        x=produtos,
+        y=quantidades,
+        hue=produtos,
+        legend=False,
+        palette=cores,
+        ax=ax
+    )
+
+    # Define ticks antes dos labels
+    ax.set_xticks(range(len(produtos)))
+    ax.set_xticklabels(produtos, rotation=45, ha='right')
+
+    ax.set_xlabel('Produto')
+    ax.set_ylabel('Quantidade')
+    ax.set_title('Vendas por Produto')
+
+    return converter_grafico_para_base64(fig)
+
 
 # Usando uma paleta de cores para o gráfico de barras
     cores = sns.color_palette("husl", len(produtos))  # Pode substituir "Set2" por outras paletas
