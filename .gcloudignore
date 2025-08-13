@@ -1,0 +1,13 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+node_modules/
+.git/
+.gitignore
+*.log
+.DS_Store
+VENDAS.xlsx
