@@ -10,8 +10,6 @@ env:
   REGION: ${{ vars.GCP_REGION || 'us-central1' }}
   REPO_NAME: ${{ vars.REPO_NAME || 'pi-repo' }}
   SERVICE_NAME: ${{ vars.SERVICE_NAME || 'gestao-vendas' }}
-  IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ vars.REPO_NAME || 'pi-repo' }}/${{ vars.SERVICE_NAME || 'gestao-vendas' }}:${{ github.sha }}
-  IMAGE_LATEST: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ vars.REPO_NAME || 'pi-repo' }}/${{ vars.SERVICE_NAME || 'gestao-vendas' }}:latest
 
 permissions:
   contents: read
@@ -29,7 +27,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Auth sem chave (WIF)
       - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
@@ -44,6 +41,14 @@ jobs:
 
       - name: Configure Docker auth for Artifact Registry
         run: gcloud auth configure-docker us-central1-docker.pkg.dev -q
+
+      # >>> NOVO: sanitiza o Project ID e monta as tags de imagem
+      - name: Compute image tags (sanitize project id)
+        run: |
+          PROJECT_ID_SANITIZED=$(printf "%s" "${{ secrets.GCP_PROJECT_ID }}" | tr -d '\r\n')
+          echo "PROJECT_ID_SANITIZED=$PROJECT_ID_SANITIZED" >> $GITHUB_ENV
+          echo "IMAGE=us-central1-docker.pkg.dev/${PROJECT_ID_SANITIZED}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE_LATEST=us-central1-docker.pkg.dev/${PROJECT_ID_SANITIZED}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:latest" >> $GITHUB_ENV
 
       - name: Build image
         run: |
