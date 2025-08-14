@@ -16,7 +16,7 @@ import io
 import base64
 
 # Caminho fixo da planilha
-PLANILHA_PATH = r"C:\Users\Josep\Desktop\Trabalho PI\VENDAS.xlsx"
+PLANILHA_PATH = r"gs://meu-bucket-pi/VENDAS.xlsx"
 
 # Inicialização do app Flask
 app = Flask(__name__)
