@@ -1,39 +1,41 @@
 # Imagem base leve com Python 3.13
 FROM python:3.13-slim
 
-# Variáveis de ambiente para evitar criar .pyc, forçar flush de stdout
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    # Backend sem interface gráfica para o Matplotlib
     MPLBACKEND=Agg \
-    # Porta padrão do seu app (você usa 5001)
     PORT=5001 \
-    # Caminho default da planilha dentro do container (ajuste se quiser)
-    PLANILHA_PATH=/data/VENDAS.xlsx
+    PLANILHA_PATH=/data/VENDAS.xlsx \
+    GOOGLE_APPLICATION_CREDENTIALS=/app/credenciais.json
 
-# Instala libs de sistema necessárias em runtime para matplotlib/pillow
-# (sem toolchain de build para manter a imagem pequena)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6 \
     libjpeg62-turbo \
     libpng16-16 \
     libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/*
 
-# Cria diretório de trabalho
 WORKDIR /app
 
-# Copia e instala dependências
+# Cria o arquivo credenciais.json
+RUN printf '%s\n' '\
+{
+  "type": "service_account",
+  "project_id": "enhanced-hawk-469011-k5",
+  "private_key_id": "505b7cd5d684cbad1331c6ebfad840419b7aed8a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCkgpHLtFztbSZ3\\n6NugkL/clX4JKAD7OyAjJPHQ//z82C1T1d7OChLB4O5ca5Bya8VVmj/lArHr74EJ\\nHaIIF7ZQ9SA6Ccm3/24FXjiaNjfxEDkycQlOCL3po1+tcxGNTXOk7X4jb9dWjpFl\\nfqi5Mdeu02bgJWSXmwCQEtlHQ19vkWXwgLfdPhAAquoQH61k+kRfKfDuoXTLZn0L\\nvhncEF4FKVo7dlD5ERjDisomgELwmTFSdwU+EAeaWn3Z8ytbIIUWybV6QfLYd3gl\\nyh/cdh5VghuySn5rgYkwFc8ze5GvlbndP3/xjn0J8eR5h98tScGzOXyXXlCOdQ+u\\nMtl9wwtfAgMBAAECggEAQO5UM022G/Qn6c4b2a0oPR04CM8kTATTM2vikfZn2ThN\\n87gHX9Vz/9gS3KGL+s10rsvaCj7dEN2QVZO/n2gUirGljaLNXnVP7Ih62Msrm1cm\\n7DTXUlh69NuJ6QDw3Y/DZEZksgHzwXM2ChRK7gWxNoy0HyZDJN+GAleeMNVztqnP\\nSWhVqtQ+GS+yaSvzs7eC2x6lbqOt8ACCOG9rWxPmYBEUo1oz32kPs3Lk71NNH3jE\\nWwdD1fEOAERbQQglW+PHdYxTKrISE7uqT3IjnSkp/KPXSBgKFRpfa4yyu1w0+Dh8\\nluqw4AM+gQQ+QfTY/FLnpszUWu8H8K5wDvjM/BawEQKBgQDeR1bGXBMYRHjCtTru\\n/0DEflZUIMHQQAzc6+QKWmm3fcSC1ML36A71HhipqbB2BXXlhSXj0QqnEGs96NYU\\no/T02N7usb5bq37v10yHvJ9Q87QUy/K8qJI2nwKB7tHeEDrWh5dkw6EZ466Ux1TE\\noXZjdxhRAFtgurl84YUsHUyxpwKBgQC9d6n1HYIW/CQassiCbRh5Ju4wlwjRSnPX\\nAKutKsjPSL4nIp9I8EK0aUwUc21fX5CO6gLtdLEtBdvHFBrMeDISc1eQkYj6BEmn\\n6nMSyDcWKjdeeh5LX/FYn9IHn75aW/QVCEBNCExuTPEqUumSOevGGDgjoBU/QvBn\\nr2Kmcz1fiQKBgHAApHH5LUn6HpuF9Hc/OWSJgHiNtPt5esHLPzIUUta50c5W5RND\\n5F2Q176OGbOulrSbffcoe2SpOlCMxWrLHwBNUzAVciUA6kpyQ0bWPbTtx9z+04ZK\\nrrpFL19HdoqdxPgahKeqh7/i4TJoqocWEPCXrzIJqwG3tQV/IbqT3PRbAoGAJO38\\nHKDByIUg7GtIldN537Ns3d+ygkjGx3OEAt7CAVUmay5eabMa7VtQzvOor9xKqvCF\\n3Y7PMf1gVy9eAdizudDtkmorjr/jM22JPHH1+sYDwNCAsyRiQGn2YDIMwkQGEUto\\nbRte+mjY4O0ERdIwWI5D8v2y5n+/qBYRXmw73DECgYEA1iY9/R8YqDeulLEbcxHh\\n9HfMgtv+P5xsPuZOOwwpChm2dn7vTSknk64XkJ/7nH1i1Y3tD2a6ZnSKjPk2nzJA\\nffwo2Qn/NKONQmz4WiT/SeuP3jY+hSiuAI6WfkUAC8ZmV+2V+LHcNDYQ8F1r0c5m\\nGR2DV02ixwXDDSvaZm661Vo=\\n-----END PRIVATE KEY-----\\n",
+  "client_email": "atividadefacukl-159@enhanced-hawk-469011-k5.iam.gserviceaccount.com",
+  "client_id": "112295919845739078433",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/atividadefacukl-159%40enhanced-hawk-469011-k5.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}' > /app/credenciais.json
+
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copia o restante do projeto
 COPY . /app
 
-# Se seu app Flask é exposto como "app = Flask(__name__)" dentro de app.py,
-# o entrypoint via gunicorn fica app:app
 EXPOSE 5001
-
-# Comando de execução (produção) com gunicorn
-# -b 0.0.0.0:$PORT para escutar em todas as interfaces dentro do container
 CMD ["gunicorn", "-b", "0.0.0.0:5001", "app:app"]
