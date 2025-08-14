@@ -1,0 +1,75 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  REPO_NAME: ${{ vars.REPO_NAME || 'pi-repo' }}
+  SERVICE_NAME: ${{ vars.SERVICE_NAME || 'gestao-vendas' }}
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Configure Docker auth for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev -q
+
+      # >>> NOVO: sanitiza o Project ID e monta as tags de imagem
+      - name: Compute image tags (sanitize project id)
+        run: |
+          PROJECT_ID_SANITIZED=$(printf "%s" "${{ secrets.GCP_PROJECT_ID }}" | tr -d '\r\n')
+          echo "PROJECT_ID_SANITIZED=$PROJECT_ID_SANITIZED" >> $GITHUB_ENV
+          echo "IMAGE=us-central1-docker.pkg.dev/${PROJECT_ID_SANITIZED}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE_LATEST=us-central1-docker.pkg.dev/${PROJECT_ID_SANITIZED}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:latest" >> $GITHUB_ENV
+
+      - name: Build image
+        run: |
+          docker build -t "$IMAGE" -t "$IMAGE_LATEST" .
+
+      - name: Push image
+        run: |
+          docker push "$IMAGE"
+          docker push "$IMAGE_LATEST"
+
+      - name: Deploy to Cloud Run (force gunicorn to use $PORT)
+        run: |
+          gcloud run deploy "$SERVICE_NAME" \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --allow-unauthenticated \
+            --set-env-vars PLANILHA_PATH="${{ secrets.PLANILHA_PATH }}" \
+            --cpu=1 --memory=512Mi --timeout=300 \
+            --command sh \
+            --args '-c','gunicorn -b 0.0.0.0:${PORT} app:app'
+
+      - name: Show service URL
+        run: |
+          gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format='value(status.url)'
