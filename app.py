@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Carrega variáveis de ambiente do arquivo .env para configurar o banco de dados de forma segura
 import os
 from dotenv import load_dotenv
@@ -21,6 +22,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Inicialização do banco de dados
 db = SQLAlchemy(app)
 
+=======
+>>>>>>> 83431863d9526b4716983007a865735e2837b8e6
 # Definindo a constante no início do código
 NAO_GERADO = "Não gerado"
 
@@ -39,11 +42,15 @@ import io
 import base64
 
 # Caminho fixo da planilha
+<<<<<<< HEAD
 #PLANILHA_PATH = r"gs://meu-bucket-pi/VENDAS.xlsx"
 
 # ID da planilha no Google Sheets
 PLANILHA_ID = "13yoi6VkBbeCnq0dmn77GRrCf_lcX6ilx2Dy279KusrA"
 
+=======
+PLANILHA_PATH = r"gs://meu-bucket-pi/VENDAS.xlsx"
+>>>>>>> 83431863d9526b4716983007a865735e2837b8e6
 
 # Inicialização do app Flask
 app = Flask(__name__)
@@ -67,6 +74,7 @@ with app.app_context():
     db.create_all()
 
 # Função para carregar os dados da planilha para o banco de dados
+<<<<<<< HEAD
 #def carregar_dados():
     #if not os.path.exists(PLANILHA_PATH):
      #   return "Erro: Planilha não encontrada."
@@ -112,6 +120,16 @@ def carregar_dados():
             return "Erro: A planilha não contém as colunas necessárias."
 
         # Limpa o banco e insere os dados
+=======
+def carregar_dados():
+    if not os.path.exists(PLANILHA_PATH):
+        return "Erro: Planilha não encontrada."
+    try:
+        df = pd.read_excel(PLANILHA_PATH, engine='openpyxl')
+        colunas_esperadas = {"Produto", "Quantidade", "Categoria"}
+        if not colunas_esperadas.issubset(df.columns):
+            return "Erro: A planilha não contém as colunas necessárias."
+>>>>>>> 83431863d9526b4716983007a865735e2837b8e6
         db.session.query(Venda).delete()
         db.session.commit()
         for _, row in df.iterrows():
@@ -120,7 +138,11 @@ def carregar_dados():
         db.session.commit()
         return "Dados carregados com sucesso!"
     except Exception as e:
+<<<<<<< HEAD
         return f"Erro ao processar a planilha: {e}"  
+=======
+        return f"Erro ao processar a planilha: {e}"
+>>>>>>> 83431863d9526b4716983007a865735e2837b8e6
 
 # Função para converter gráficos em Base64
 def converter_grafico_para_base64(fig):
@@ -235,6 +257,7 @@ def home():
 
 @app.route('/carregar', methods=['GET'])
 def carregar():
+<<<<<<< HEAD
     with app.app_context():  # Garante que o db funcione corretamente
      carregar_dados()
     return redirect(url_for('home'))
@@ -281,11 +304,25 @@ def excluir(produto):
             return "Erro: A planilha não contém a coluna 'Produto'", 400
 
         # Remover do banco de dados
+=======
+    carregar_dados()
+    return redirect(url_for('home'))
+
+@app.route('/excluir/<string:produto>', methods=['GET'])
+def excluir(produto):
+    if not os.path.exists(PLANILHA_PATH):
+        return "Erro: Planilha não encontrada", 404
+    try:
+        df = pd.read_excel(PLANILHA_PATH, engine='openpyxl')
+        if "Produto" not in df.columns:
+            return "Erro: A planilha não contém a coluna 'Produto'", 400
+>>>>>>> 83431863d9526b4716983007a865735e2837b8e6
         venda = Venda.query.filter_by(produto=produto).first()
         if not venda:
             return "Erro: Produto não encontrado no banco de dados.", 404
         db.session.delete(venda)
         db.session.commit()
+<<<<<<< HEAD
 
         # Remover da planilha
         df_filtrado = df[df["Produto"] != produto]
@@ -298,5 +335,15 @@ def excluir(produto):
         return f"Erro ao excluir venda: {e}", 500
 
 
+=======
+        df_filtrado = df[df["Produto"] != produto]
+        df_filtrado.to_excel(PLANILHA_PATH, index=False, engine='openpyxl')
+        return redirect(url_for('home'))
+    except PermissionError:
+        return "Erro: Permissão negada ao acessar o arquivo. Feche a planilha e tente novamente.", 500
+    except Exception as e:
+        return f"Erro ao excluir venda: {e}", 500
+
+>>>>>>> 83431863d9526b4716983007a865735e2837b8e6
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
