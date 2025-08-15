@@ -7,3 +7,4 @@ seaborn==0.13.2
 gunicorn==21.2.0
 openpyxl==3.1.5
 gcsfs==2024.10.0
+google-cloud-storage==2.18.2

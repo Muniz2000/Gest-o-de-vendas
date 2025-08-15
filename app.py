@@ -1,349 +1,374 @@
-<<<<<<< HEAD
-# Carrega variáveis de ambiente do arquivo .env para configurar o banco de dados de forma segura
+from __future__ import annotations
+
+# =========================
+# Config & Imports
+# =========================
+import io
 import os
-from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for
+import logging
+from typing import Tuple, Optional, List
+
+import matplotlib
+matplotlib.use("Agg")  # backend headless para servidores
+import matplotlib.pyplot as plt
+
+import pandas as pd
+from flask import Flask, redirect, url_for, request, render_template_string, abort
 from flask_sqlalchemy import SQLAlchemy
-# ... outros imports
+from google.cloud import storage
 
-# Carrega as variáveis do .env
-load_dotenv()
-
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-
-# Configuração do SQLAlchemy usando as variáveis do .env
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Inicialização do banco de dados
-db = SQLAlchemy(app)
-
-=======
->>>>>>> 83431863d9526b4716983007a865735e2837b8e6
-# Definindo a constante no início do código
 NAO_GERADO = "Não gerado"
 
-# Importações e outras configurações
-import matplotlib
-matplotlib.use('Agg')  # Configuração do backend para evitar o erro com Tkinter
-import matplotlib.pyplot as plt
+# =========================
+# Application Factory
+# =========================
+def create_app() -> Flask:
+    app = Flask(__name__)
 
-from flask import Flask, render_template, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-import pandas as pd
-import os
-import matplotlib.pyplot as plt
-import seaborn as sns
-import io
-import base64
+    # Config padrão (pode sobrescrever via env)
+    app.config.update(
+        SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///vendas.db"),
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        GCS_BUCKET_NAME=os.getenv("GCS_BUCKET_NAME", "").strip(),
+        GCS_BLOB_NAME=os.getenv("GCS_BLOB_NAME", "").strip(),  # exemplo: "vendas.xlsx"
+        SYNC_BACK_TO_GCS=os.getenv("SYNC_BACK_TO_GCS", "false").lower() == "true",
+    )
 
-# Caminho fixo da planilha
-<<<<<<< HEAD
-#PLANILHA_PATH = r"gs://meu-bucket-pi/VENDAS.xlsx"
+    # Logs mais verbosos em dev
+    logging.basicConfig(level=logging.INFO)
+    app.logger.setLevel(logging.INFO)
 
-# ID da planilha no Google Sheets
-PLANILHA_ID = "13yoi6VkBbeCnq0dmn77GRrCf_lcX6ilx2Dy279KusrA"
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
 
-=======
-PLANILHA_PATH = r"gs://meu-bucket-pi/VENDAS.xlsx"
->>>>>>> 83431863d9526b4716983007a865735e2837b8e6
+    register_routes(app)
+    return app
 
-# Inicialização do app Flask
-app = Flask(__name__)
+# =========================
+# Database (SQLAlchemy)
+# =========================
+db = SQLAlchemy()
 
-# Configuração do banco de dados SQLite
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vendas.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Inicialização do banco de dados
-db = SQLAlchemy(app)
-
-# Modelo da Tabela de Vendas
 class Venda(db.Model):
+    __tablename__ = "vendas"
+
     id = db.Column(db.Integer, primary_key=True)
     produto = db.Column(db.String(100), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False)
     categoria = db.Column(db.String(50), nullable=False)
 
-# Criar banco de dados (caso ainda não tenha sido criado)
-with app.app_context():
-    db.create_all()
+    def to_tuple(self) -> Tuple[str, int, str]:
+        return (self.produto, self.quantidade, self.categoria)
 
-# Função para carregar os dados da planilha para o banco de dados
-<<<<<<< HEAD
-#def carregar_dados():
-    #if not os.path.exists(PLANILHA_PATH):
-     #   return "Erro: Planilha não encontrada."
-    #try:
-        #df = pd.read_excel(PLANILHA_PATH, engine='openpyxl')
-        #colunas_esperadas = {"Produto", "Quantidade", "Categoria"}
-        #if not colunas_esperadas.issubset(df.columns):
-         #   return "Erro: A planilha não contém as colunas necessárias."
-        #db.session.query(Venda).delete()
-        #db.session.commit()
-        #for _, row in df.iterrows():
-        #    nova_venda = Venda(produto=row["Produto"], quantidade=row["Quantidade"], categoria=row["Categoria"])
-       #     db.session.add(nova_venda)
-      #  db.session.commit()
-     #   return "Dados carregados com sucesso!"
-    #except Exception as e:
-     #   return f"Erro ao processar a planilha: {e}"
-     
-     
-   # Função para carregar os dados da planilha para o banco de dados
-def carregar_dados():
-    try:
-        import gspread
-        from oauth2client.service_account import ServiceAccountCredentials
-        import pandas as pd
 
-        # Escopos da API
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# =========================
+# GCS Helpers
+# =========================
+REQUIRED_COLS = {"Produto", "Quantidade", "Categoria"}
 
-        # Autenticação
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
-        client = gspread.authorize(creds)
 
-        # Abrir a planilha pelo ID
-        sheet = client.open_by_key(PLANILHA_ID).sheet1
+def _get_gcs_client() -> storage.Client:
+    """
+    Usa credenciais padrão do ambiente.
+    Certifique-se de definir GOOGLE_APPLICATION_CREDENTIALS se necessário.
+    """
+    return storage.Client()
 
-        # Ler os dados da planilha
-        df = pd.DataFrame(sheet.get_all_records())
 
-        # Verifica colunas
-        colunas_esperadas = {"Produto", "Quantidade", "Categoria"}
-        if not colunas_esperadas.issubset(df.columns):
-            return "Erro: A planilha não contém as colunas necessárias."
+def read_xls_from_gcs(bucket_name: str, blob_name: str) -> pd.DataFrame:
+    """
+    Baixa um XLS/XLSX do GCS e retorna um DataFrame validado.
+    """
+    if not bucket_name or not blob_name:
+        raise ValueError("GCS_BUCKET_NAME e GCS_BLOB_NAME são obrigatórios.")
 
-        # Limpa o banco e insere os dados
-=======
-def carregar_dados():
-    if not os.path.exists(PLANILHA_PATH):
-        return "Erro: Planilha não encontrada."
-    try:
-        df = pd.read_excel(PLANILHA_PATH, engine='openpyxl')
-        colunas_esperadas = {"Produto", "Quantidade", "Categoria"}
-        if not colunas_esperadas.issubset(df.columns):
-            return "Erro: A planilha não contém as colunas necessárias."
->>>>>>> 83431863d9526b4716983007a865735e2837b8e6
+    client = _get_gcs_client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    if not blob.exists():
+        raise FileNotFoundError(f"Blob não encontrado: gs://{bucket_name}/{blob_name}")
+
+    data: bytes = blob.download_as_bytes()
+    bio = io.BytesIO(data)
+
+    # pandas detecta o engine automaticamente (xlrd/openpyxl)
+    df = pd.read_excel(bio)
+
+    missing = REQUIRED_COLS - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"A planilha não contém as colunas necessárias: {sorted(missing)}"
+        )
+
+    # Normaliza nomes/valores se necessário
+    df["Produto"] = df["Produto"].astype(str).str.strip()
+    df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0).astype(int)
+    df["Categoria"] = df["Categoria"].astype(str).str.strip()
+
+    return df
+
+
+def write_xls_to_gcs(df: pd.DataFrame, bucket_name: str, blob_name: str) -> None:
+    """
+    Sobrescreve o XLS no GCS com o conteúdo do DataFrame.
+    Usado apenas quando SYNC_BACK_TO_GCS=true.
+    """
+    client = _get_gcs_client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    with io.BytesIO() as output:
+        # Usa ExcelWriter para preservar formato Excel
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False)
+        output.seek(0)
+        blob.upload_from_file(output, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# =========================
+# Data Loaders
+# =========================
+def carregar_dados_do_gcs(app: Flask) -> int:
+    """
+    Carrega o XLS do GCS para o banco local.
+    Retorna a quantidade de linhas inseridas.
+    """
+    bucket = app.config["GCS_BUCKET_NAME"]
+    blob = app.config["GCS_BLOB_NAME"]
+    app.logger.info("Carregando XLS do GCS: gs://%s/%s", bucket, blob)
+
+    df = read_xls_from_gcs(bucket, blob)
+
+    with app.app_context():
+        # Tranca tabela e substitui (simples) — em produção considere upsert por chave
         db.session.query(Venda).delete()
-        db.session.commit()
+        insert_count = 0
         for _, row in df.iterrows():
-            nova_venda = Venda(produto=row["Produto"], quantidade=row["Quantidade"], categoria=row["Categoria"])
-            db.session.add(nova_venda)
+            v = Venda(
+                produto=str(row["Produto"]),
+                quantidade=int(row["Quantidade"]),
+                categoria=str(row["Categoria"]),
+            )
+            db.session.add(v)
+            insert_count += 1
         db.session.commit()
-        return "Dados carregados com sucesso!"
-    except Exception as e:
-<<<<<<< HEAD
-        return f"Erro ao processar a planilha: {e}"  
-=======
-        return f"Erro ao processar a planilha: {e}"
->>>>>>> 83431863d9526b4716983007a865735e2837b8e6
 
-# Função para converter gráficos em Base64
-def converter_grafico_para_base64(fig):
-    img = io.BytesIO()
-    fig.savefig(img, format='png', bbox_inches='tight')  # Evita corte do gráfico
-    img.seek(0)
-    plt.close(fig)  # Fecha a figura para evitar sobreposição de gráficos
-    return base64.b64encode(img.getvalue()).decode()
+    app.logger.info("Carregamento concluído: %d registros", insert_count)
+    return insert_count
 
-# Função para gerar gráfico de linhas (Vendas por Produto)
-def gerar_grafico_linhas():
-    vendas = Venda.query.all()
+
+def dump_db_to_dataframe() -> pd.DataFrame:
+    """
+    Exporta a tabela 'vendas' para DataFrame com as colunas esperadas.
+    """
+    vendas: List[Venda] = Venda.query.order_by(Venda.id.asc()).all()
     if not vendas:
-        print(f"⚠ Aviso: Nenhuma venda encontrada para gerar o gráfico de linhas. {NAO_GERADO}")
+        return pd.DataFrame(columns=list(REQUIRED_COLS))
+    data = [{
+        "Produto": v.produto,
+        "Quantidade": v.quantidade,
+        "Categoria": v.categoria
+    } for v in vendas]
+    return pd.DataFrame(data, columns=["Produto", "Quantidade", "Categoria"])
+
+
+# =========================
+# Plot Helpers
+# =========================
+def fig_to_base64(fig: plt.Figure) -> str:
+    buf = io.BytesIO()
+    fig.tight_layout()
+    fig.savefig(buf, format="png", dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    import base64
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def grafico_barras() -> str:
+    vendas: List[Venda] = Venda.query.all()
+    if not vendas:
         return NAO_GERADO
 
     produtos = [v.produto for v in vendas]
     quantidades = [v.quantidade for v in vendas]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    sns.lineplot(x=produtos, y=quantidades, marker='o', ax=ax)
-
-    # Define ticks antes dos labels (corrige o UserWarning)
-    ax.set_xticks(range(len(produtos)))
-    ax.set_xticklabels(produtos, rotation=45, ha='right')
-
-    ax.set_xlabel('Produto')
-    ax.set_ylabel('Quantidade')
-    ax.set_title('Vendas por Produto')
-
-    return converter_grafico_para_base64(fig)
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.bar(produtos, quantidades)
+    ax.set_xlabel("Produto")
+    ax.set_ylabel("Quantidade")
+    ax.set_title("Vendas por Produto")
+    ax.set_xticklabels(produtos, rotation=45, ha="right")
+    return fig_to_base64(fig)
 
 
-# Função para gerar gráfico de barras (Vendas por Produto)
-def gerar_grafico_barras():
-    vendas = Venda.query.all()
+def grafico_pizza() -> str:
+    vendas: List[Venda] = Venda.query.all()
     if not vendas:
-        print(f"⚠ Aviso: Nenhuma venda encontrada para gerar o gráfico de barras. {NAO_GERADO}")
         return NAO_GERADO
 
-    produtos = [v.produto for v in vendas]
-    quantidades = [v.quantidade for v in vendas]
+    # Distribuição por categoria
+    df = pd.DataFrame([v.to_tuple() for v in vendas], columns=["Produto", "Quantidade", "Categoria"])
+    dist = df.groupby("Categoria")["Quantidade"].sum().sort_values(ascending=False)
 
-    # Paleta personalizada
-    cores = sns.color_palette("husl", len(produtos))
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-
-    # Usa hue para manter cores sem FutureWarning
-    sns.barplot(
-        x=produtos,
-        y=quantidades,
-        hue=produtos,
-        legend=False,
-        palette=cores,
-        ax=ax
-    )
-
-    # Define ticks antes dos labels
-    ax.set_xticks(range(len(produtos)))
-    ax.set_xticklabels(produtos, rotation=45, ha='right')
-
-    ax.set_xlabel('Produto')
-    ax.set_ylabel('Quantidade')
-    ax.set_title('Vendas por Produto')
-
-    return converter_grafico_para_base64(fig)
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.pie(dist.values, labels=dist.index, autopct="%1.1f%%", startangle=90)
+    ax.set_title("Distribuição de Vendas por Categoria")
+    ax.axis("equal")
+    return fig_to_base64(fig)
 
 
-# Usando uma paleta de cores para o gráfico de barras
-    cores = sns.color_palette("husl", len(produtos))  # Pode substituir "Set2" por outras paletas
+# =========================
+# Routes / Views
+# =========================
+INDEX_TEMPLATE = """
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard de Vendas</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+    header { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    a.button { background:#111; color:#fff; padding:10px 14px; border-radius:10px; text-decoration:none; }
+    a.button.light { background:#f2f2f2; color:#111; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px; margin-top:20px; }
+    figure { border:1px solid #e5e5e5; border-radius:12px; padding:12px; background:#fff; }
+    table { border-collapse: collapse; width:100%; font-size:14px; }
+    th, td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; }
+    .muted { color:#666; }
+    .id { color:#999; font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0;">Dashboard de Vendas</h1>
+    <a class="button" href="{{ url_for('carregar') }}">Recarregar do GCS</a>
+    <a class="button light" href="{{ url_for('healthz') }}">Health</a>
+  </header>
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    
-    sns.barplot(x=produtos, y=quantidades, ax=ax, palette=cores)  # Aplicando a paleta de cores
-    sns.barplot(x=produtos, y=quantidades, ax=ax)
-    ax.set_xticklabels(produtos, rotation=45)
-    ax.set_xlabel('Produto')
-    ax.set_ylabel('Quantidade')
-    ax.set_title('Vendas por Produto')
+  {% if error %}
+    <p class="muted">Erro: {{ error }}</p>
+  {% endif %}
 
-    return converter_grafico_para_base64(fig)
+  <div class="grid">
+    <figure>
+      <figcaption><strong>Vendas por Produto (Barras)</strong></figcaption>
+      {% if chart_barras == 'Não gerado' %}
+        <p class="muted">Sem dados para gerar o gráfico.</p>
+      {% else %}
+        <img alt="Gráfico de Barras" style="max-width:100%" src="data:image/png;base64,{{ chart_barras }}">
+      {% endif %}
+    </figure>
 
-# Função para gerar gráfico de pizza (Distribuição de Vendas)
-def gerar_grafico_pizza():
-    vendas = Venda.query.all()
-    if not vendas:
-        print(f"⚠ Aviso: Nenhuma venda encontrada para gerar o gráfico de pizza. {NAO_GERADO}")
-        return NAO_GERADO
+    <figure>
+      <figcaption><strong>Distribuição por Categoria (Pizza)</strong></figcaption>
+      {% if chart_pizza == 'Não gerado' %}
+        <p class="muted">Sem dados para gerar o gráfico.</p>
+      {% else %}
+        <img alt="Gráfico de Pizza" style="max-width:100%" src="data:image/png;base64,{{ chart_pizza }}">
+      {% endif %}
+    </figure>
+  </div>
 
-    categorias = [v.categoria for v in vendas]
-    quantidades = [v.quantidade for v in vendas]
+  <h2>Vendas</h2>
+  {% if vendas|length == 0 %}
+    <p class="muted">Nenhum registro carregado. Clique em <em>Recarregar do GCS</em>.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Produto</th><th>Quantidade</th><th>Categoria</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vendas %}
+          <tr>
+            <td class="id">{{ v.id }}</td>
+            <td>{{ v.produto }}</td>
+            <td>{{ v.quantidade }}</td>
+            <td>{{ v.categoria }}</td>
+            <td><a href="{{ url_for('excluir', id=v.id) }}">Excluir</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</body>
+</html>
+"""
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.pie(quantidades, labels=categorias, autopct='%1.1f%%', startangle=90)
-    ax.set_title('Distribuição de Vendas')
+def register_routes(app: Flask) -> None:
+    @app.route("/")
+    def index():
+        vendas = Venda.query.order_by(Venda.id.asc()).all()
+        try:
+            chart_barras = grafico_barras()
+            chart_pizza = grafico_pizza()
+        except Exception as e:
+            app.logger.exception("Falha ao gerar gráficos")
+            return render_template_string(INDEX_TEMPLATE, vendas=vendas, chart_barras=NAO_GERADO,
+                                          chart_pizza=NAO_GERADO, error=str(e))
+        return render_template_string(INDEX_TEMPLATE, vendas=vendas, chart_barras=chart_barras,
+                                      chart_pizza=chart_pizza, error=None)
 
-    return converter_grafico_para_base64(fig)
+    @app.route("/carregar", methods=["GET"])
+    def carregar():
+        try:
+            n = carregar_dados_do_gcs(app)
+            app.logger.info("Recarregado %d registros do GCS", n)
+            return redirect(url_for("index"))
+        except Exception as e:
+            app.logger.exception("Erro ao carregar do GCS")
+            return render_template_string(INDEX_TEMPLATE, vendas=Venda.query.all(),
+                                          chart_barras=NAO_GERADO, chart_pizza=NAO_GERADO, error=str(e)), 500
 
-@app.route('/')
-def home():
-    vendas = Venda.query.all()
-    grafico_linhas = gerar_grafico_linhas()
-    grafico_barras = gerar_grafico_barras()
-    grafico_pizza = gerar_grafico_pizza()
+    @app.route("/excluir/<int:id>", methods=["GET"])
+    def excluir(id: int):
+        v = Venda.query.get(id)
+        if not v:
+            abort(404, description="Venda não encontrada")
 
-    print("✅ Gráfico de Linhas:", "Gerado" if grafico_linhas != NAO_GERADO else NAO_GERADO)
-    print("✅ Gráfico de Barras:", "Gerado" if grafico_barras != NAO_GERADO else NAO_GERADO)
-    print("✅ Gráfico de Pizza:", "Gerado" if grafico_pizza != NAO_GERADO else NAO_GERADO)
-
-    return render_template('index.html', vendas=vendas, grafico_linhas=grafico_linhas, grafico_barras=grafico_barras, grafico_pizza=grafico_pizza)
-
-@app.route('/carregar', methods=['GET'])
-def carregar():
-<<<<<<< HEAD
-    with app.app_context():  # Garante que o db funcione corretamente
-     carregar_dados()
-    return redirect(url_for('home'))
-
-#@app.route('/excluir/<string:produto>', methods=['GET'])
-#def excluir(produto):
- #   if not os.path.exists(PLANILHA_PATH):
-  #      return "Erro: Planilha não encontrada", 404
-   # try:
-    #    df = pd.read_excel(PLANILHA_PATH, engine='openpyxl')
-     #   if "Produto" not in df.columns:
-      #      return "Erro: A planilha não contém a coluna 'Produto'", 400
-       # venda = Venda.query.filter_by(produto=produto).first()
-        #if not venda:
-         #   return "Erro: Produto não encontrado no banco de dados.", 404
-        #db.session.delete(venda)
-        #db.session.commit()
-        #df_filtrado = df[df["Produto"] != produto]
-        #df_filtrado.to_excel(PLANILHA_PATH, index=False, engine='openpyxl')
-        #return redirect(url_for('home'))
-    #except PermissionError:
-     #   return "Erro: Permissão negada ao acessar o arquivo. Feche a planilha e tente novamente.", 500
-    #except Exception as e:
-     #   return f"Erro ao excluir venda: {e}", 500
-     
-     
-     #nova escrita
-@app.route('/excluir/<string:produto>', methods=['GET'])
-def excluir(produto):
-    try:
-        import gspread
-        from oauth2client.service_account import ServiceAccountCredentials
-        import pandas as pd
-
-        # Configuração da API Google Sheets
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key(PLANILHA_ID).sheet1
-
-        # Ler os dados da planilha
-        df = pd.DataFrame(sheet.get_all_records())
-        if "Produto" not in df.columns:
-            return "Erro: A planilha não contém a coluna 'Produto'", 400
-
-        # Remover do banco de dados
-=======
-    carregar_dados()
-    return redirect(url_for('home'))
-
-@app.route('/excluir/<string:produto>', methods=['GET'])
-def excluir(produto):
-    if not os.path.exists(PLANILHA_PATH):
-        return "Erro: Planilha não encontrada", 404
-    try:
-        df = pd.read_excel(PLANILHA_PATH, engine='openpyxl')
-        if "Produto" not in df.columns:
-            return "Erro: A planilha não contém a coluna 'Produto'", 400
->>>>>>> 83431863d9526b4716983007a865735e2837b8e6
-        venda = Venda.query.filter_by(produto=produto).first()
-        if not venda:
-            return "Erro: Produto não encontrado no banco de dados.", 404
-        db.session.delete(venda)
+        # Remove do banco
+        db.session.delete(v)
         db.session.commit()
-<<<<<<< HEAD
+        app.logger.info("Removido ID=%s (%s)", id, v.produto)
 
-        # Remover da planilha
-        df_filtrado = df[df["Produto"] != produto]
-        sheet.clear()  # Limpa a planilha
-        sheet.update([df_filtrado.columns.values.tolist()] + df_filtrado.values.tolist())
+        # Opcional: sincroniza de volta para o XLS no bucket
+        if app.config["SYNC_BACK_TO_GCS"]:
+            try:
+                df = dump_db_to_dataframe()
+                write_xls_to_gcs(
+                    df=df,
+                    bucket_name=app.config["GCS_BUCKET_NAME"],
+                    blob_name=app.config["GCS_BLOB_NAME"],
+                )
+                app.logger.info("XLS atualizado no GCS após exclusão (SYNC_BACK_TO_GCS=true).")
+            except Exception:
+                app.logger.exception("Falha ao sincronizar XLS no GCS após exclusão.")
 
-        return redirect(url_for('home'))
+        return redirect(url_for("index"))
 
-    except Exception as e:
-        return f"Erro ao excluir venda: {e}", 500
+    @app.route("/healthz", methods=["GET"])
+    def healthz():
+        # Checagem simples de saúde do app e do DB
+        try:
+            db.session.execute(db.text("SELECT 1"))
+            return {"status": "ok"}, 200
+        except Exception as e:
+            app.logger.exception("Healthcheck falhou")
+            return {"status": "error", "detail": str(e)}, 500
 
 
-=======
-        df_filtrado = df[df["Produto"] != produto]
-        df_filtrado.to_excel(PLANILHA_PATH, index=False, engine='openpyxl')
-        return redirect(url_for('home'))
-    except PermissionError:
-        return "Erro: Permissão negada ao acessar o arquivo. Feche a planilha e tente novamente.", 500
-    except Exception as e:
-        return f"Erro ao excluir venda: {e}", 500
+# =========================
+# Entrypoint
+# =========================
+app = create_app()
 
->>>>>>> 83431863d9526b4716983007a865735e2837b8e6
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+if __name__ == "__main__":
+    # Porta padrão 5001 (como no teu código)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5001")), debug=os.getenv("FLASK_DEBUG", "false").lower() == "true")
