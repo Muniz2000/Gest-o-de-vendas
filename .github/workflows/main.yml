@@ -64,6 +64,7 @@ jobs:
           gcloud run deploy "$SERVICE_NAME" \
             --image "$IMAGE" \
             --region "$REGION" \
+            --service-account deploy-ci@pi-projeto-integrador-468922.iam.gserviceaccount.com \
             --allow-unauthenticated \
             --set-env-vars PLANILHA_PATH="${{ secrets.PLANILHA_PATH }}" \
             --cpu=1 --memory=512Mi --timeout=300 \

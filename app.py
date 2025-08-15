@@ -1,4 +1,5 @@
 from __future__ import annotations
+from google.api_core.exceptions import NotFound
 
 # =========================
 # Config & Imports
@@ -79,37 +80,31 @@ def _get_gcs_client() -> storage.Client:
 
 def read_xls_from_gcs(bucket_name: str, blob_name: str) -> pd.DataFrame:
     """
-    Baixa um XLS/XLSX do GCS e retorna um DataFrame validado.
+    Baixa um XLS/XLSX do GCS e retorna um DataFrame validado usando ADC.
     """
     if not bucket_name or not blob_name:
         raise ValueError("GCS_BUCKET_NAME e GCS_BLOB_NAME são obrigatórios.")
 
-    client = _get_gcs_client()
+    client = _get_gcs_client()  # usa ADC automaticamente
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
 
-    if not blob.exists():
+    try:
+        data: bytes = blob.download_as_bytes(timeout=60)  # faz 1 chamada com auth ADC
+    except NotFound:
         raise FileNotFoundError(f"Blob não encontrado: gs://{bucket_name}/{blob_name}")
 
-    data: bytes = blob.download_as_bytes()
     bio = io.BytesIO(data)
-
-    # pandas detecta o engine automaticamente (xlrd/openpyxl)
     df = pd.read_excel(bio)
 
     missing = REQUIRED_COLS - set(df.columns)
     if missing:
-        raise ValueError(
-            f"A planilha não contém as colunas necessárias: {sorted(missing)}"
-        )
+        raise ValueError(f"A planilha não contém as colunas necessárias: {sorted(missing)}")
 
-    # Normaliza nomes/valores se necessário
     df["Produto"] = df["Produto"].astype(str).str.strip()
     df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0).astype(int)
     df["Categoria"] = df["Categoria"].astype(str).str.strip()
-
     return df
-
 
 def write_xls_to_gcs(df: pd.DataFrame, bucket_name: str, blob_name: str) -> None:
     """
