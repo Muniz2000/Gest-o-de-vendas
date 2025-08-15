@@ -33,6 +33,7 @@ def create_app() -> Flask:
         GCS_BUCKET_NAME=os.getenv("GCS_BUCKET_NAME", "").strip(),
         GCS_BLOB_NAME=os.getenv("GCS_BLOB_NAME", "").strip(),
         SYNC_BACK_TO_GCS=os.getenv("SYNC_BACK_TO_GCS", "false").lower() == "true",
+        APPEND_ON_ADD=os.getenv("APPEND_ON_ADD", "true").lower() == "true",
     )
 
     # Logs mais verbosos em dev
@@ -105,6 +106,26 @@ def read_xls_from_gcs(bucket_name: str, blob_name: str) -> pd.DataFrame:
     df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0).astype(int)
     df["Categoria"] = df["Categoria"].astype(str).str.strip()
     return df
+
+def append_row_to_gcs_excel(bucket_name: str, blob_name: str, row: dict) -> None:
+    """
+    Lê o Excel do GCS, concatena a nova linha e grava de volta.
+    Se o arquivo não existir, cria com header.
+    """
+    try:
+        df_atual = read_xls_from_gcs(bucket_name, blob_name)
+    except FileNotFoundError:
+        df_atual = pd.DataFrame(columns=["Produto", "Quantidade", "Categoria"])
+
+    nova_linha = pd.DataFrame([row], columns=["Produto", "Quantidade", "Categoria"])
+    # garante tipagem
+    nova_linha["Produto"] = nova_linha["Produto"].astype(str).str.strip()
+    nova_linha["Quantidade"] = pd.to_numeric(nova_linha["Quantidade"], errors="coerce").fillna(0).astype(int)
+    nova_linha["Categoria"] = nova_linha["Categoria"].astype(str).str.strip()
+
+    df_novo = pd.concat([df_atual, nova_linha], ignore_index=True)
+    write_xls_to_gcs(df_novo, bucket_name, blob_name)
+
 
 def write_xls_to_gcs(df: pd.DataFrame, bucket_name: str, blob_name: str) -> None:
     """
@@ -441,53 +462,57 @@ def register_routes(app: Flask) -> None:
 
         if not produto or not categoria:
             produtos = Venda.query.order_by(Venda.id.asc()).all()
-            return render_template(
-                "index.html",
-                produtos=produtos,          # <- trocado
-                chart_barras=grafico_barras(),
-                chart_pizza=grafico_pizza(),
-                error="Produto e categoria são obrigatórios."
-            ), 400
+            return render_template("index.html", produtos=produtos,
+                                chart_barras=grafico_barras(),
+                                chart_pizza=grafico_pizza(),
+                                error="Produto e categoria são obrigatórios."), 400
 
         try:
             quantidade = int(quantidade_raw)
             if quantidade < 1:
-                raise ValueError("Quantidade deve ser >= 1")
+                raise ValueError
         except Exception:
             produtos = Venda.query.order_by(Venda.id.asc()).all()
-            return render_template(
-                "index.html",
-                produtos=produtos,          # <- trocado
-                chart_barras=grafico_barras(),
-                chart_pizza=grafico_pizza(),
-                error="Quantidade inválida."
-            ), 400
+            return render_template("index.html", produtos=produtos,
+                                chart_barras=grafico_barras(),
+                                chart_pizza=grafico_pizza(),
+                                error="Quantidade inválida."), 400
 
         try:
+            # 1) salva no banco
             v = Venda(produto=produto, quantidade=quantidade, categoria=categoria)
             db.session.add(v)
             db.session.commit()
             app.logger.info("Adicionado ID=%s (%s)", v.id, v.produto)
 
+            # 2) sincroniza com o Excel no GCS
             if app.config["SYNC_BACK_TO_GCS"]:
                 try:
-                    df = dump_db_to_dataframe()
-                    write_xls_to_gcs(df, app.config["GCS_BUCKET_NAME"], app.config["GCS_BLOB_NAME"])
-                    app.logger.info("XLS atualizado no GCS após inclusão (SYNC_BACK_TO_GCS=true).")
+                    if app.config.get("APPEND_ON_ADD", True):
+                        # APPEND (rápido, não perde formatação do arquivo original)
+                        append_row_to_gcs_excel(
+                            bucket_name=app.config["GCS_BUCKET_NAME"],
+                            blob_name=app.config["GCS_BLOB_NAME"],
+                            row={"Produto": produto, "Quantidade": quantidade, "Categoria": categoria},
+                        )
+                        app.logger.info("Linha anexada ao XLS (append).")
+                    else:
+                        # fallback: sobrescreve com dump do banco
+                        df = dump_db_to_dataframe()
+                        write_xls_to_gcs(df, app.config["GCS_BUCKET_NAME"], app.config["GCS_BLOB_NAME"])
+                        app.logger.info("XLS atualizado (overwrite).")
                 except Exception:
-                    app.logger.exception("Falha ao sincronizar XLS no GCS após inclusão.")
+                    app.logger.exception("Falha ao sincronizar com o XLS no GCS após inclusão.")
+
             return redirect(url_for("index"))
 
         except Exception as e:
             app.logger.exception("Erro ao adicionar produto")
             produtos = Venda.query.order_by(Venda.id.asc()).all()
-            return render_template(
-                "index.html",
-                produtos=produtos,          # <- trocado
-                chart_barras=grafico_barras(),
-                chart_pizza=grafico_pizza(),
-                error=str(e)
-            ), 500
+            return render_template("index.html", produtos=produtos,
+                                chart_barras=grafico_barras(),
+                                chart_pizza=grafico_pizza(),
+                                error=str(e)), 500
 
 
 # =========================
