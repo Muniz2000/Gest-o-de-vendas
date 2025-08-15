@@ -380,17 +380,23 @@ def grafico_pizza() -> str:
 def register_routes(app: Flask) -> None:
     @app.route("/")
     def index():
-        vendas = Venda.query.order_by(Venda.id.asc()).all()
+        produtos = Venda.query.order_by(Venda.id.asc()).all()
+        # evita usar var não definida se der erro ao gerar gráficos
+        chart_barras = NAO_GERADO
+        chart_pizza  = NAO_GERADO
         try:
             chart_barras = grafico_barras()
-            chart_pizza = grafico_pizza()
-        except Exception as e:
+            chart_pizza  = grafico_pizza()
+        except Exception:
             app.logger.exception("Falha ao gerar gráficos")
-            return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None)
 
-        return render_template("index.html", vendas=vendas, 
-                               chart_barras=chart_barras, chart_pizza=chart_pizza, 
-                               error=None)
+        return render_template(
+            "index.html",
+            produtos=produtos,              # <- trocado
+            chart_barras=chart_barras,
+            chart_pizza=chart_pizza,
+            error=None
+        )
 
     @app.route("/carregar", methods=["GET"])
     def carregar():
@@ -400,53 +406,44 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for("index"))
         except Exception as e:
             app.logger.exception("Erro ao carregar do GCS")
-            vendas = Venda.query.order_by(Venda.id.asc()).all()
-            chart_barras = grafico_barras()
-            chart_pizza = grafico_pizza()
-            return render_template("index.html", vendas=vendas,
-                                chart_barras=chart_barras, chart_pizza=chart_pizza,
-                                error=str(e)), 500
-
+            produtos = Venda.query.order_by(Venda.id.asc()).all()
+            return render_template(
+                "index.html",
+                produtos=produtos,          # <- trocado
+                chart_barras=grafico_barras(),
+                chart_pizza=grafico_pizza(),
+                error=str(e)
+            ), 500
 
     @app.route("/excluir/<int:id>", methods=["GET"])
     def excluir(id: int):
         v = Venda.query.get(id)
         if not v:
-            abort(404, description="Venda não encontrada")
-
-        # Remove do banco
+            abort(404, description="Produto não encontrado")
         db.session.delete(v)
         db.session.commit()
         app.logger.info("Removido ID=%s (%s)", id, v.produto)
 
-        # Opcional: sincroniza de volta para o XLS no bucket
         if app.config["SYNC_BACK_TO_GCS"]:
             try:
                 df = dump_db_to_dataframe()
-                write_xls_to_gcs(
-                    df=df,
-                    bucket_name=app.config["GCS_BUCKET_NAME"],
-                    blob_name=app.config["GCS_BLOB_NAME"],
-                )
+                write_xls_to_gcs(df, app.config["GCS_BUCKET_NAME"], app.config["GCS_BLOB_NAME"])
                 app.logger.info("XLS atualizado no GCS após exclusão (SYNC_BACK_TO_GCS=true).")
             except Exception:
                 app.logger.exception("Falha ao sincronizar XLS no GCS após exclusão.")
-
         return redirect(url_for("index"))
-    
+
     @app.route("/adicionar", methods=["POST"])
     def adicionar():
         produto = request.form.get("produto", "").strip()
         quantidade_raw = request.form.get("quantidade", "").strip()
         categoria = request.form.get("categoria", "").strip()
 
-        # validação simples
         if not produto or not categoria:
-            app.logger.warning("Campos obrigatórios ausentes ao adicionar: produto/categoria")
-            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            produtos = Venda.query.order_by(Venda.id.asc()).all()
             return render_template(
                 "index.html",
-                vendas=vendas,
+                produtos=produtos,          # <- trocado
                 chart_barras=grafico_barras(),
                 chart_pizza=grafico_pizza(),
                 error="Produto e categoria são obrigatórios."
@@ -457,59 +454,40 @@ def register_routes(app: Flask) -> None:
             if quantidade < 1:
                 raise ValueError("Quantidade deve ser >= 1")
         except Exception:
-            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            produtos = Venda.query.order_by(Venda.id.asc()).all()
             return render_template(
                 "index.html",
-                vendas=vendas,
+                produtos=produtos,          # <- trocado
                 chart_barras=grafico_barras(),
                 chart_pizza=grafico_pizza(),
                 error="Quantidade inválida."
             ), 400
 
         try:
-            # grava no banco
             v = Venda(produto=produto, quantidade=quantidade, categoria=categoria)
             db.session.add(v)
             db.session.commit()
             app.logger.info("Adicionado ID=%s (%s)", v.id, v.produto)
 
-            # sincroniza de volta para o XLS no bucket (opcional)
             if app.config["SYNC_BACK_TO_GCS"]:
                 try:
-                    df = dump_db_to_dataframe()  # banco -> DataFrame com colunas ["Produto","Quantidade","Categoria"]
-                    write_xls_to_gcs(
-                        df=df,
-                        bucket_name=app.config["GCS_BUCKET_NAME"],
-                        blob_name=app.config["GCS_BLOB_NAME"],
-                    )
+                    df = dump_db_to_dataframe()
+                    write_xls_to_gcs(df, app.config["GCS_BUCKET_NAME"], app.config["GCS_BLOB_NAME"])
                     app.logger.info("XLS atualizado no GCS após inclusão (SYNC_BACK_TO_GCS=true).")
                 except Exception:
                     app.logger.exception("Falha ao sincronizar XLS no GCS após inclusão.")
-
             return redirect(url_for("index"))
 
         except Exception as e:
             app.logger.exception("Erro ao adicionar produto")
-            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            produtos = Venda.query.order_by(Venda.id.asc()).all()
             return render_template(
                 "index.html",
-                vendas=vendas,
+                produtos=produtos,          # <- trocado
                 chart_barras=grafico_barras(),
                 chart_pizza=grafico_pizza(),
                 error=str(e)
             ), 500
-
-
-
-    @app.route("/healthz", methods=["GET"])
-    def healthz():
-        # Checagem simples de saúde do app e do DB
-        try:
-            db.session.execute(db.text("SELECT 1"))
-            return {"status": "ok"}, 200
-        except Exception as e:
-            app.logger.exception("Healthcheck falhou")
-            return {"status": "error", "detail": str(e)}, 500
 
 
 # =========================
