@@ -237,8 +237,7 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for("index"))
         except Exception as e:
             app.logger.exception("Erro ao carregar do GCS")
-            return render_template_string(INDEX_TEMPLATE, vendas=Venda.query.all(),
-                                          chart_barras=NAO_GERADO, chart_pizza=NAO_GERADO, error=str(e)), 500
+            return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None), 500
 
     @app.route("/excluir/<int:id>", methods=["GET"])
     def excluir(id: int):
