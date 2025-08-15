@@ -184,36 +184,51 @@ def fig_to_base64(fig: plt.Figure) -> str:
 
 
 def grafico_barras() -> str:
-    vendas: List[Venda] = Venda.query.all()
-    if not vendas:
+    try:
+        vendas: List[Venda] = Venda.query.all()
+        if not vendas:
+            return NAO_GERADO
+
+        produtos = [v.produto for v in vendas]
+        quantidades = [v.quantidade for v in vendas]
+
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+        ax.bar(produtos, quantidades)
+        ax.set_xlabel("Produto")
+        ax.set_ylabel("Quantidade")
+        ax.set_title("Vendas por Produto")
+        ax.set_xticks(range(len(produtos)))
+        ax.set_xticklabels(produtos, rotation=45, ha="right")
+
+        return fig_to_base64(fig)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return NAO_GERADO
 
-    produtos = [v.produto for v in vendas]
-    quantidades = [v.quantidade for v in vendas]
-
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    ax.bar(produtos, quantidades)
-    ax.set_xlabel("Produto")
-    ax.set_ylabel("Quantidade")
-    ax.set_title("Vendas por Produto")
-    ax.set_xticklabels(produtos, rotation=45, ha="right")
-    return fig_to_base64(fig)
 
 
 def grafico_pizza() -> str:
-    vendas: List[Venda] = Venda.query.all()
-    if not vendas:
+    try:
+        vendas: List[Venda] = Venda.query.all()
+        if not vendas:
+            return NAO_GERADO
+
+        df = pd.DataFrame([v.to_tuple() for v in vendas], columns=["Produto", "Quantidade", "Categoria"])
+        dist = df.groupby("Categoria")["Quantidade"].sum().sort_values(ascending=False)
+
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.pie(dist.values, labels=dist.index, autopct="%1.1f%%", startangle=90)
+        ax.set_title("Distribuição de Vendas por Categoria")
+        ax.axis("equal")
+
+        return fig_to_base64(fig)
+    except Exception as e:
+        import traceback
+        print("Erro ao gerar gráfico de pizza:")
+        traceback.print_exc()
         return NAO_GERADO
 
-    # Distribuição por categoria
-    df = pd.DataFrame([v.to_tuple() for v in vendas], columns=["Produto", "Quantidade", "Categoria"])
-    dist = df.groupby("Categoria")["Quantidade"].sum().sort_values(ascending=False)
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie(dist.values, labels=dist.index, autopct="%1.1f%%", startangle=90)
-    ax.set_title("Distribuição de Vendas por Categoria")
-    ax.axis("equal")
-    return fig_to_base64(fig)
 
 
 def register_routes(app: Flask) -> None:
