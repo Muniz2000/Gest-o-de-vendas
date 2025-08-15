@@ -227,7 +227,9 @@ def register_routes(app: Flask) -> None:
             app.logger.exception("Falha ao gerar gráficos")
             return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None)
 
-        return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None)
+        return render_template("index.html", vendas=vendas, 
+                               chart_barras=chart_barras, chart_pizza=chart_pizza, 
+                               error=None)
 
     @app.route("/carregar", methods=["GET"])
     def carregar():
@@ -237,7 +239,13 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for("index"))
         except Exception as e:
             app.logger.exception("Erro ao carregar do GCS")
-            return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None), 500
+            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            chart_barras = grafico_barras()
+            chart_pizza = grafico_pizza()
+            return render_template("index.html", vendas=vendas,
+                                chart_barras=chart_barras, chart_pizza=chart_pizza,
+                                error=str(e)), 500
+
 
     @app.route("/excluir/<int:id>", methods=["GET"])
     def excluir(id: int):

@@ -15,11 +15,10 @@
     </div>
 
     <!-- Exibir mensagem de erro ou sucesso -->
-    {% if mensagem %}
-    <div class="alert alert-info text-center">
-        {{ mensagem }}
-    </div>
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
     {% endif %}
+
 
     <h2 class="mt-5">Vendas Cadastradas</h2>
     <table class="table table-striped">
@@ -39,7 +38,7 @@
                 <td>{{ venda.categoria }}</td>
                 <td>
                     <!-- Botão para excluir a venda baseada no nome do produto -->
-                    <a href="{{ url_for('excluir', produto=venda.produto) }}" class="btn btn-danger">Excluir</a>
+                    <a href="{{ url_for('excluir', id=venda.id) }}" class="btn btn-danger">Excluir</a>
                 </td>
             </tr>
             {% endfor %}
@@ -47,14 +46,14 @@
     </table>
 
     <div class="row">
-        <div class="col-md-4 text-center">
+        <!-- <div class="col-md-4 text-center">
             <h2>Vendas por Mês</h2>
             {% if grafico_linhas %}
             <img class="img-fluid" src="data:image/png;base64,{{ grafico_linhas }}" alt="Gráfico de Linhas">
             {% else %}
             <p>Gráfico não disponível.</p>
             {% endif %}
-        </div>
+        </div> -->
         <div class="col-md-4 text-center">
             <h2>Vendas por Produto</h2>
             {% if grafico_barras %}
