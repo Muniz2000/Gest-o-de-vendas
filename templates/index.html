@@ -6,74 +6,124 @@
   <title>Painel de Vendas</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body.loading::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.8) url('https://i.gifer.com/YCZH.gif') center center no-repeat;
+      z-index: 9999;
+    }
+    .sidebar {
+      width: 250px;
+      height: 100vh;
+      background-color: #f8f9fa;
+      position: fixed;
+      top: 0;
+      left: 0;
+      padding: 1rem;
+      border-right: 1px solid #dee2e6;
+    }
+    .content {
+      margin-left: 260px;
+      padding: 1rem;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .content {
+        margin-left: 0;
+      }
+    }
+  </style>
 </head>
-<body>
-  <div class="container py-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-      <h1 class="h3">Painel de Vendas</h1>
-      <div>
-        <a href="{{ url_for('carregar') }}" class="btn btn-primary me-2">
-          <i class="bi bi-cloud-download"></i> Carregar do GCS
-        </a>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalVenda">
-          <i class="bi bi-plus-circle"></i> Nova Venda
-        </button>
+<body class="loading">
+  <div class="sidebar">
+    <h5>Produtos</h5>
+    <ul class="list-unstyled">
+      {% for produto in produtos %}
+        <li><a href="#" class="d-block py-1">{{ produto.nome }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="content">
+    <div class="container-fluid py-4">
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h3">Painel de Vendas</h1>
+        <div>
+          <a href="{{ url_for('carregar') }}" class="btn btn-primary me-2">
+            <i class="bi bi-cloud-download"></i> Carregar do GCS
+          </a>
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalVenda">
+            <i class="bi bi-plus-circle"></i> Nova Venda
+          </button>
+        </div>
       </div>
-    </div>
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
 
-    {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-
-    <div class="table-responsive">
-      <table class="table table-striped align-middle text-center">
-        <thead class="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Produto</th>
-            <th>Quantidade</th>
-            <th>Categoria</th>
-            <th>Ação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for venda in vendas %}
+      <div class="table-responsive">
+        <table class="table table-striped align-middle text-center">
+          <thead class="table-dark">
             <tr>
-              <td>{{ venda.id }}</td>
-              <td>{{ venda.produto }}</td>
-              <td>{{ venda.quantidade }}</td>
-              <td>{{ venda.categoria }}</td>
-              <td>
-                <a href="{{ url_for('excluir', id=venda.id) }}" class="btn btn-outline-danger btn-sm">
-                  <i class="bi bi-trash"></i> Excluir
-                </a>
-              </td>
+              <th>ID</th>
+              <th>Produto</th>
+              <th>Quantidade</th>
+              <th>Categoria</th>
+              <th>Ação</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="row mt-5 gy-4">
-      <div class="col-md-6 text-center">
-        <h5>Vendas por Produto</h5>
-        {% if chart_barras != "Não gerado" %}
-          <img src="data:image/png;base64,{{ chart_barras }}" class="img-fluid rounded border">
-        {% else %}
-          <p class="text-muted">Gráfico não disponível.</p>
-        {% endif %}
+          </thead>
+          <tbody>
+            {% for venda in vendas %}
+              <tr>
+                <td>{{ venda.id }}</td>
+                <td>{{ venda.produto }}</td>
+                <td>{{ venda.quantidade }}</td>
+                <td>{{ venda.categoria }}</td>
+                <td>
+                  <a href="{{ url_for('excluir', id=venda.id) }}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Excluir
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <div class="col-md-6 text-center">
-        <h5>Distribuição de Vendas</h5>
-        {% if chart_pizza != "Não gerado" %}
-          <img src="data:image/png;base64,{{ chart_pizza }}" class="img-fluid rounded border">
-        {% else %}
-          <p class="text-muted">Gráfico não disponível.</p>
-        {% endif %}
+
+      <h5 class="mt-5">Últimos 5 Itens Adicionados</h5>
+      <ul class="list-group mb-5">
+        {% for item in ultimos_itens %}
+          <li class="list-group-item">{{ item.produto }} - {{ item.categoria }} ({{ item.quantidade }})</li>
+        {% endfor %}
+      </ul>
+
+      <div class="row gy-4">
+        <div class="col-md-6 text-center">
+          <h5>Vendas por Produto</h5>
+          {% if chart_barras != "Não gerado" %}
+            <img src="data:image/png;base64,{{ chart_barras }}" class="img-fluid rounded border">
+          {% else %}
+            <p class="text-muted">Gráfico não disponível.</p>
+          {% endif %}
+        </div>
+        <div class="col-md-6 text-center">
+          <h5>Distribuição de Vendas</h5>
+          {% if chart_pizza != "Não gerado" %}
+            <img src="data:image/png;base64,{{ chart_pizza }}" class="img-fluid rounded border">
+          {% else %}
+            <p class="text-muted">Gráfico não disponível.</p>
+          {% endif %}
+        </div>
       </div>
     </div>
-
   </div>
 
   <!-- Modal para adicionar venda -->
@@ -106,5 +156,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.addEventListener('load', function () {
+      document.body.classList.remove('loading');
+    });
+  </script>
 </body>
 </html>
