@@ -287,6 +287,25 @@ def register_routes(app: Flask) -> None:
                 app.logger.exception("Falha ao sincronizar XLS no GCS após exclusão.")
 
         return redirect(url_for("index"))
+    
+    @app.route("/adicionar", methods=["POST"])
+    def adicionar():
+        produto = request.form.get("produto", "").strip()
+        quantidade = request.form.get("quantidade", "0")
+        categoria = request.form.get("categoria", "").strip()
+
+        try:
+            v = Venda(produto=produto, quantidade=int(quantidade), categoria=categoria)
+            db.session.add(v)
+            db.session.commit()
+            return redirect(url_for("index"))
+        except Exception as e:
+            app.logger.exception("Erro ao adicionar venda")
+            return render_template("index.html", vendas=Venda.query.all(),
+                                chart_barras=grafico_barras(),
+                                chart_pizza=grafico_pizza(),
+                                error=str(e)), 500
+
 
     @app.route("/healthz", methods=["GET"])
     def healthz():
