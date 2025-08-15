@@ -189,19 +189,98 @@ def grafico_barras() -> str:
         if not vendas:
             return NAO_GERADO
 
-        produtos = [v.produto for v in vendas]
-        quantidades = [v.quantidade for v in vendas]
+        # --- base de dados
+        df = pd.DataFrame(
+            [(v.produto, v.quantidade) for v in vendas],
+            columns=["Produto", "Quantidade"]
+        )
+        dist = (
+            df.groupby("Produto")["Quantidade"]
+              .sum()
+              .sort_values(ascending=False)
+        )
 
-        fig, ax = plt.subplots(figsize=(8, 4.5))
-        ax.bar(produtos, quantidades)
-        ax.set_xlabel("Produto")
-        ax.set_ylabel("Quantidade")
-        ax.set_title("Vendas por Produto")
-        ax.set_xticks(range(len(produtos)))
-        ax.set_xticklabels(produtos, rotation=45, ha="right")
+        # --- top N + "Outros"
+        N_BARS = 12
+        if len(dist) > N_BARS:
+            top = dist.iloc[:N_BARS]
+            outros_total = dist.iloc[N_BARS:].sum()
+            if outros_total > 0:
+                dist = pd.concat([top, pd.Series({"Outros": outros_total})])
 
+        nomes = dist.index.tolist()
+        valores = dist.values.tolist()
+        total = int(sum(valores))
+
+        # --- tema dark (consistente com seu CSS)
+        bg = "#0A0A0A"       # body
+        panel = "#111214"    # card/surface
+        text = "#E5E7EB"     # texto claro
+        line = "#23252B"     # borda/grid
+
+        # paleta coerente com o gráfico de pizza
+        palette = [
+            "#60A5FA", "#34D399", "#A78BFA", "#38BDF8", "#F59E0B",
+            "#F472B6", "#22D3EE", "#F87171", "#10B981", "#C084FC",
+            "#93C5FD", "#2DD4BF", "#FB7185"
+        ][:len(nomes)]
+
+        # --- plot
+        import numpy as np
+        def _short(s: str, n: int = 18) -> str:
+            return s if len(s) <= n else s[:n - 1] + "…"
+        nomes_short = [_short(n) for n in nomes]
+        x = np.arange(len(nomes_short))
+
+        fig, ax = plt.subplots(figsize=(9.5, 5.6), facecolor=bg)
+        ax.set_facecolor(panel)
+
+        bars = ax.bar(
+            x, valores,
+            color=palette,
+            edgecolor=line,
+            linewidth=0.8
+        )
+
+        # grade sutil
+        ax.yaxis.grid(True, which="major", linestyle="-", linewidth=0.7, color=line, alpha=0.55)
+        ax.xaxis.grid(False)
+
+        # rótulos e títulos
+        ax.set_title("Quantidade por Produto", color=text, fontsize=12, pad=14, weight="600")
+        ax.set_xlabel("Produto", color=text, labelpad=8)
+        ax.set_ylabel("Quantidade", color=text, labelpad=8)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(nomes_short, rotation=35, ha="right", color=text, fontsize=10)
+        ax.tick_params(axis="y", colors=text)
+
+        # spines
+        for spine in ax.spines.values():
+            spine.set_color(line)
+
+        # espaço no topo para os labels
+        ax.margins(y=0.18)
+
+        # labels de valor acima das barras (omite se barra muito pequena)
+        ymax = max(valores) if valores else 1
+        for rect, v in zip(bars, valores):
+            if v <= 0:
+                continue
+            if v < ymax * 0.04:  # evita poluição visual
+                continue
+            ax.text(
+                rect.get_x() + rect.get_width() / 2,
+                rect.get_height() + (ymax * 0.02),
+                f"{v}",
+                ha="center", va="bottom",
+                color=text, fontsize=10, fontweight="600"
+            )
+
+        fig.tight_layout(pad=1.2)
         return fig_to_base64(fig)
-    except Exception as e:
+
+    except Exception:
         import traceback
         traceback.print_exc()
         return NAO_GERADO
@@ -214,20 +293,87 @@ def grafico_pizza() -> str:
         if not vendas:
             return NAO_GERADO
 
+        # DataFrame base
         df = pd.DataFrame([v.to_tuple() for v in vendas], columns=["Produto", "Quantidade", "Categoria"])
         dist = df.groupby("Categoria")["Quantidade"].sum().sort_values(ascending=False)
 
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.pie(dist.values, labels=dist.index, autopct="%1.1f%%", startangle=90)
-        ax.set_title("Distribuição de Vendas por Categoria")
+        # Agrupa a cauda longa em "Outros" (mantém os 7 mais representativos)
+        if len(dist) > 7:
+            top = dist.iloc[:7]
+            outros_total = dist.iloc[7:].sum()
+            if outros_total > 0:
+                dist = pd.concat([top, pd.Series({"Outros": outros_total})])
+
+        # Paleta pensada para dark (azuis/cianos/roxos/verdes/laranja)
+        palette = [
+            "#60A5FA", "#34D399", "#A78BFA", "#38BDF8", "#F59E0B",
+            "#F472B6", "#22D3EE", "#F87171", "#10B981", "#C084FC"
+        ][:len(dist)]
+
+        total = int(dist.sum())
+
+        # Cores e fundo combinando com seu CSS (dark)
+        bg = "#0A0A0A"       # body
+        panel = "#111214"    # card/surface
+        text = "#E5E7EB"     # texto claro
+        line = "#23252B"     # borda
+
+        fig, ax = plt.subplots(figsize=(7, 7), facecolor=bg)
+        ax.set_facecolor(panel)
+
+        # função para mostrar porcentagem (e valor) apenas se o slice for relevante
+        def _autopct(pct):
+            if pct < 5:  # esconde rótulos muito pequenos
+                return ""
+            val = int(round(pct/100.0 * total))
+            return f"{pct:.1f}%\n({val})"
+
+        wedges, texts, autotexts = ax.pie(
+            dist.values,
+            # donut
+            wedgeprops=dict(width=0.42, edgecolor=line, linewidth=0.8),
+            startangle=90,
+            colors=palette,
+            # rótulos nos slices ficam limpos; legenda traz nomes/valores
+            labels=None,
+            autopct=_autopct,
+            pctdistance=0.75,
+            textprops=dict(color=text, fontsize=11, fontweight="600"),
+        )
+
+        # centro do donut com total
+        ax.text(
+            0, 0, f"Total\n{total}",
+            ha="center", va="center",
+            fontsize=13, fontweight="700", color=text
+        )
+
+        # Título neutro (sem “vendas”)
+        ax.set_title("Distribuição por Categoria", color=text, fontsize=12, pad=16)
         ax.axis("equal")
 
+        # Legenda à direita com categoria + soma
+        legend_labels = [f"{cat} — {qty}" for cat, qty in dist.items()]
+        leg = ax.legend(
+            wedges, legend_labels,
+            title="Categorias",
+            title_fontsize=11, fontsize=10,
+            loc="center left", bbox_to_anchor=(1.02, 0.5),
+            frameon=True
+        )
+        # ajusta a moldura da legenda para o dark
+        leg.get_frame().set_facecolor(panel)
+        leg.get_frame().set_edgecolor(line)
+
+        fig.tight_layout(pad=1.2)
         return fig_to_base64(fig)
-    except Exception as e:
+
+    except Exception:
         import traceback
         print("Erro ao gerar gráfico de pizza:")
         traceback.print_exc()
         return NAO_GERADO
+
 
 
 
@@ -291,20 +437,68 @@ def register_routes(app: Flask) -> None:
     @app.route("/adicionar", methods=["POST"])
     def adicionar():
         produto = request.form.get("produto", "").strip()
-        quantidade = request.form.get("quantidade", "0")
+        quantidade_raw = request.form.get("quantidade", "").strip()
         categoria = request.form.get("categoria", "").strip()
 
+        # validação simples
+        if not produto or not categoria:
+            app.logger.warning("Campos obrigatórios ausentes ao adicionar: produto/categoria")
+            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            return render_template(
+                "index.html",
+                vendas=vendas,
+                chart_barras=grafico_barras(),
+                chart_pizza=grafico_pizza(),
+                error="Produto e categoria são obrigatórios."
+            ), 400
+
         try:
-            v = Venda(produto=produto, quantidade=int(quantidade), categoria=categoria)
+            quantidade = int(quantidade_raw)
+            if quantidade < 1:
+                raise ValueError("Quantidade deve ser >= 1")
+        except Exception:
+            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            return render_template(
+                "index.html",
+                vendas=vendas,
+                chart_barras=grafico_barras(),
+                chart_pizza=grafico_pizza(),
+                error="Quantidade inválida."
+            ), 400
+
+        try:
+            # grava no banco
+            v = Venda(produto=produto, quantidade=quantidade, categoria=categoria)
             db.session.add(v)
             db.session.commit()
+            app.logger.info("Adicionado ID=%s (%s)", v.id, v.produto)
+
+            # sincroniza de volta para o XLS no bucket (opcional)
+            if app.config["SYNC_BACK_TO_GCS"]:
+                try:
+                    df = dump_db_to_dataframe()  # banco -> DataFrame com colunas ["Produto","Quantidade","Categoria"]
+                    write_xls_to_gcs(
+                        df=df,
+                        bucket_name=app.config["GCS_BUCKET_NAME"],
+                        blob_name=app.config["GCS_BLOB_NAME"],
+                    )
+                    app.logger.info("XLS atualizado no GCS após inclusão (SYNC_BACK_TO_GCS=true).")
+                except Exception:
+                    app.logger.exception("Falha ao sincronizar XLS no GCS após inclusão.")
+
             return redirect(url_for("index"))
+
         except Exception as e:
-            app.logger.exception("Erro ao adicionar venda")
-            return render_template("index.html", vendas=Venda.query.all(),
-                                chart_barras=grafico_barras(),
-                                chart_pizza=grafico_pizza(),
-                                error=str(e)), 500
+            app.logger.exception("Erro ao adicionar produto")
+            vendas = Venda.query.order_by(Venda.id.asc()).all()
+            return render_template(
+                "index.html",
+                vendas=vendas,
+                chart_barras=grafico_barras(),
+                chart_pizza=grafico_pizza(),
+                error=str(e)
+            ), 500
+
 
 
     @app.route("/healthz", methods=["GET"])

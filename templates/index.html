@@ -1,533 +1,64 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Painel de Vendas</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #000;
-      color: #fff;
-      line-height: 1.4;
-      font-size: 14px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0.75rem;
-    }
-
-    /* Header */
-    .header {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    /* Buttons */
-    .btn {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #333;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #222;
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn:hover {
-      background: #333;
-      border-color: #555;
-    }
-
-    .btn-primary {
-      background: #0066cc;
-      border-color: #0066cc;
-    }
-
-    .btn-primary:hover {
-      background: #0052a3;
-    }
-
-    .btn-success {
-      background: #00aa44;
-      border-color: #00aa44;
-    }
-
-    .btn-success:hover {
-      background: #008833;
-    }
-
-    .btn-danger {
-      background: #cc0000;
-      border-color: #cc0000;
-      padding: 0.25rem 0.5rem;
-      font-size: 0.7rem;
-    }
-
-    .btn-danger:hover {
-      background: #aa0000;
-    }
-
-    /* Error Alert */
-    .alert {
-      background: #330000;
-      border: 1px solid #cc0000;
-      border-radius: 6px;
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-      font-size: 0.8rem;
-    }
-
-    /* Stats */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .stat {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 0.75rem;
-      text-align: center;
-    }
-
-    .stat-title {
-      font-size: 0.7rem;
-      color: #aaa;
-      text-transform: uppercase;
-      margin-bottom: 0.25rem;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .stat-change {
-      font-size: 0.65rem;
-      color: #00aa44;
-      margin-top: 0.25rem;
-    }
-
-    /* Cards */
-    .card {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      overflow: hidden;
-    }
-
-    .card-header {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #333;
-      background: #0a0a0a;
-    }
-
-    .card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .card-body {
-      padding: 1rem;
-    }
-
-    /* Table */
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-    }
-
-    .table th,
-    .table td {
-      padding: 0.5rem;
-      text-align: left;
-      border-bottom: 1px solid #333;
-    }
-
-    .table th {
-      background: #0a0a0a;
-      font-weight: 500;
-      color: #ccc;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-    }
-
-    .table tr:hover {
-      background: #1a1a1a;
-    }
-
-    .badge {
-      background: #0066cc;
-      color: #fff;
-      padding: 0.1rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.65rem;
-      font-weight: 500;
-    }
-
-    /* Recent Items */
-    .recent-items {
-      list-style: none;
-    }
-
-    .recent-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem;
-      border-radius: 6px;
-      background: #1a1a1a;
-      margin-bottom: 0.5rem;
-    }
-
-    .recent-item:hover {
-      background: #222;
-    }
-
-    .quantity-badge {
-      background: #0066cc;
-      color: #fff;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      font-weight: 600;
-    }
-
-    /* Charts */
-    .charts {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .chart-container {
-      text-align: center;
-      padding: 0.5rem;
-    }
-
-    .chart-container img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 6px;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      color: #666;
-    }
-
-    /* Modal */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-    }
-
-    .modal.show {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-content {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 1.5rem;
-      max-width: 400px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid #333;
-    }
-
-    .modal-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      color: #aaa;
-      cursor: pointer;
-      padding: 0.25rem;
-    }
-
-    .close-btn:hover {
-      color: #fff;
-    }
-
-    /* Form */
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-label {
-      display: block;
-      font-weight: 500;
-      color: #ccc;
-      margin-bottom: 0.25rem;
-      font-size: 0.8rem;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #333;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      background: #222;
-      color: #fff;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: #0066cc;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: flex-end;
-      margin-top: 1rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid #333;
-    }
-
-    /* Floating Action Button */
-    .fab {
-      position: fixed;
-      bottom: 1rem;
-      right: 1rem;
-      width: 48px;
-      height: 48px;
-      background: #0066cc;
-      border: none;
-      border-radius: 50%;
-      color: #fff;
-      font-size: 1.2rem;
-      cursor: pointer;
-      z-index: 999;
-      display: none;
-    }
-
-    .fab:hover {
-      background: #0052a3;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .container {
-        padding: 0.5rem;
-      }
-
-      .header {
-        padding: 0.75rem;
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .actions {
-        justify-content: center;
-      }
-
-      .title {
-        text-align: center;
-        font-size: 1.1rem;
-      }
-
-      .stats {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.5rem;
-      }
-
-      .stat {
-        padding: 0.5rem;
-      }
-
-      .stat-value {
-        font-size: 1.2rem;
-      }
-
-      .card-body {
-        padding: 0.75rem;
-      }
-
-      .table th,
-      .table td {
-        padding: 0.4rem 0.25rem;
-        font-size: 0.75rem;
-      }
-
-      .charts {
-        grid-template-columns: 1fr;
-      }
-
-      .fab {
-        display: block;
-      }
-
-      .btn {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.7rem;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .container {
-        padding: 0.25rem;
-      }
-
-      .header {
-        padding: 0.5rem;
-        margin-bottom: 0.75rem;
-      }
-
-      .stats {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.4rem;
-      }
-
-      .card-body {
-        padding: 0.5rem;
-      }
-
-      .modal-content {
-        padding: 1rem;
-        margin: 1rem;
-      }
-
-      .actions {
-        display: none; /* Hide desktop buttons on very small screens */
-      }
-    }
-
-    .text-muted {
-      color: #666;
-    }
-
-    .text-center {
-      text-align: center;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel de Produtos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
+  <div class="bg-radial"></div>
+
   <div class="container">
     <!-- Header -->
-    <header class="header">
-      <h1 class="title">Dashboard de Vendas</h1>
+    <header class="header card">
+      <div class="header__left">
+        <h1 class="title">Dashboard de Produtos</h1>
+        <p class="subtitle">Acompanhe seus itens em tempo real</p>
+      </div>
       <div class="actions">
         <a href="{{ url_for('carregar') }}" class="btn btn-primary">
-          Carregar GCS
+          <span class="btn__dot" aria-hidden="true"></span> Carregar GCS
         </a>
         <button class="btn btn-success" onclick="openModal()">
-          + Nova Venda
+          <span class="btn__plus" aria-hidden="true">+</span> Novo Produto
         </button>
       </div>
     </header>
 
     <!-- Error Alert -->
     {% if error %}
-    <div class="alert">
-      {{ error }}
+    <div class="alert card" role="alert">
+      <span class="alert__icon" aria-hidden="true">⚠️</span>
+      <div>{{ error }}</div>
     </div>
     {% endif %}
 
     <!-- Stats -->
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-title">Total</div>
-        <div class="stat-value">{{ vendas|length }}</div>
-        <div class="stat-change">↗ 12%</div>
-      </div>
+    <section class="stats">
+      <article class="stat card">
+        <div class="stat__label">Total de Produtos</div>
+        <div class="stat__value">{{ produtos|length }}</div>
+      </article>
 
-      <div class="stat">
-        <div class="stat-title">Produtos</div>
-        <div class="stat-value">{{ vendas|map(attribute='produto')|unique|list|length }}</div>
-        <div class="stat-change">↗ 8%</div>
-      </div>
+      <article class="stat card">
+        <div class="stat__label">Produtos Únicos</div>
+        <div class="stat__value">{{ produtos|map(attribute='produto')|unique|list|length }}</div>
+      </article>
 
-      <div class="stat">
-        <div class="stat-title">Categorias</div>
-        <div class="stat-value">{{ vendas|map(attribute='categoria')|unique|list|length }}</div>
-        <div class="stat-change">↗ 5%</div>
-      </div>
-    </div>
+      <article class="stat card">
+        <div class="stat__label">Categorias</div>
+        <div class="stat__value">{{ produtos|map(attribute='categoria')|unique|list|length }}</div>
+      </article>
+    </section>
 
-    <!-- Sales Table -->
-    <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">Vendas Recentes</h2>
+    <!-- Products Table -->
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Produtos Cadastrados</h2>
       </div>
-      <div class="card-body">
+      <div class="card__body">
         <div class="table-wrapper">
           <table class="table">
             <thead>
@@ -540,63 +71,60 @@
               </tr>
             </thead>
             <tbody>
-              {% for venda in vendas %}
+              {% for item in produtos %}
               <tr>
-                <td><strong>#{{ venda.id }}</strong></td>
-                <td>{{ venda.produto }}</td>
-                <td>{{ venda.quantidade }}</td>
+                <td><strong>#{{ item.id }}</strong></td>
+                <td class="truncate">{{ item.produto }}</td>
+                <td>{{ item.quantidade }}</td>
+                <td><span class="badge">{{ item.categoria }}</span></td>
                 <td>
-                  <span class="badge">{{ venda.categoria }}</span>
-                </td>
-                <td>
-                  <a href="{{ url_for('excluir', id=venda.id) }}" class="btn btn-danger" onclick="return confirm('Excluir?')">
-                    ×
-                  </a>
+                  <a href="{{ url_for('excluir', id=item.id) }}" class="btn btn-danger btn-icon" onclick="return confirm('Excluir?')"
+                     aria-label="Excluir produto #{{ item.id }}">×</a>
                 </td>
               </tr>
               {% else %}
               <tr>
-                <td colspan="5" class="text-center text-muted">Nenhuma venda encontrada</td>
+                <td colspan="5" class="text-center text-muted">Nenhum produto encontrado</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Recent Items -->
-    {% if vendas %}
-    <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">Últimos 5 Itens</h2>
+    {% if produtos %}
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Últimos 5 Produtos</h2>
       </div>
-      <div class="card-body">
+      <div class="card__body">
         <ul class="recent-items">
-          {% for venda in vendas[-5:] %}
+          {% for item in produtos[-5:] %}
           <li class="recent-item">
-            <div>
-              <strong>{{ venda.produto }}</strong>
-              <span class="text-muted"> - {{ venda.categoria }}</span>
+            <div class="recent-item__meta">
+              <strong class="truncate">{{ item.produto }}</strong>
+              <span class="text-muted"> • {{ item.categoria }}</span>
             </div>
-            <div class="quantity-badge">{{ venda.quantidade }}</div>
+            <div class="quantity-badge" title="Quantidade">{{ item.quantidade }}</div>
           </li>
           {% endfor %}
         </ul>
       </div>
-    </div>
+    </section>
     {% endif %}
 
     <!-- Charts -->
-    <div class="charts">
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Vendas por Produto</h2>
+    <section class="charts">
+      <article class="card">
+        <div class="card__header">
+          <h2 class="card__title">Quantidade por Produto</h2>
         </div>
-        <div class="card-body">
+        <div class="card__body">
           <div class="chart-container">
             {% if chart_barras != "Não gerado" %}
-              <img src="data:image/png;base64,{{ chart_barras }}" alt="Gráfico de Barras">
+              <img src="data:image/png;base64,{{ chart_barras }}" alt="Gráfico de barras - Quantidade por Produto" />
             {% else %}
               <div class="empty-state">
                 <p>Gráfico não disponível</p>
@@ -604,16 +132,16 @@
             {% endif %}
           </div>
         </div>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Distribuição por Categoria</h2>
+      <article class="card">
+        <div class="card__header">
+          <h2 class="card__title">Distribuição por Categoria</h2>
         </div>
-        <div class="card-body">
+        <div class="card__body">
           <div class="chart-container">
             {% if chart_pizza != "Não gerado" %}
-              <img src="data:image/png;base64,{{ chart_pizza }}" alt="Gráfico de Pizza">
+              <img src="data:image/png;base64,{{ chart_pizza }}" alt="Gráfico de pizza - Distribuição por Categoria" />
             {% else %}
               <div class="empty-state">
                 <p>Gráfico não disponível</p>
@@ -621,29 +149,30 @@
             {% endif %}
           </div>
         </div>
-      </div>
-    </div>
+      </article>
+    </section>
   </div>
 
   <!-- Modal -->
-  <div class="modal" id="saleModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title">Nova Venda</h2>
-        <button class="close-btn" onclick="closeModal()">×</button>
+  <div class="modal" id="productModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal__overlay" onclick="closeModal()"></div>
+    <div class="modal__content card" role="document">
+      <div class="modal__header">
+        <h2 id="modalTitle" class="modal__title">Novo Produto</h2>
+        <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">×</button>
       </div>
       <form method="POST" action="{{ url_for('adicionar') }}">
         <div class="form-group">
-          <label class="form-label">Produto</label>
-          <input type="text" name="produto" class="form-input" required placeholder="Nome do produto">
+          <label class="form-label" for="produto">Produto</label>
+          <input id="produto" type="text" name="produto" class="form-input" required placeholder="Nome do produto" />
         </div>
         <div class="form-group">
-          <label class="form-label">Quantidade</label>
-          <input type="number" name="quantidade" class="form-input" min="1" required placeholder="Quantidade">
+          <label class="form-label" for="quantidade">Quantidade</label>
+          <input id="quantidade" type="number" name="quantidade" class="form-input" min="1" required placeholder="Quantidade" />
         </div>
         <div class="form-group">
-          <label class="form-label">Categoria</label>
-          <input type="text" name="categoria" class="form-input" required placeholder="Categoria">
+          <label class="form-label" for="categoria">Categoria</label>
+          <input id="categoria" type="text" name="categoria" class="form-input" required placeholder="Categoria" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
@@ -653,59 +182,49 @@
     </div>
   </div>
 
-  <!-- Floating Action Button (Mobile) -->
-  <button class="fab" onclick="openModal()">+</button>
+  <!-- FAB (Mobile) -->
+  <button class="fab" onclick="openModal()" aria-label="Adicionar novo produto">+</button>
 
   <script>
-    // Modal Functions
+    // Modal
     function openModal() {
-      document.getElementById('saleModal').classList.add('show');
+      const m = document.getElementById('productModal');
+      m.classList.add('show');
       document.body.style.overflow = 'hidden';
+      setTimeout(() => document.getElementById('produto')?.focus(), 0);
     }
-
     function closeModal() {
-      document.getElementById('saleModal').classList.remove('show');
+      const m = document.getElementById('productModal');
+      m.classList.remove('show');
       document.body.style.overflow = 'auto';
     }
-
-    // Close modal when clicking outside
-    document.getElementById('saleModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeModal();
-      }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
     });
 
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeModal();
-      }
-    });
-
-    // Simple form validation
-    document.querySelector('form').addEventListener('submit', function(e) {
+    // Validação simples
+    const form = document.querySelector('form');
+    form?.addEventListener('submit', function(e) {
       const inputs = this.querySelectorAll('input[required]');
-      let isValid = true;
-      
-      inputs.forEach(input => {
-        if (!input.value.trim()) {
-          input.style.borderColor = '#cc0000';
-          isValid = false;
+      let ok = true;
+      inputs.forEach((i) => {
+        if (!i.value.trim()) {
+          i.classList.add('invalid');
+          ok = false;
         } else {
-          input.style.borderColor = '#333';
+          i.classList.remove('invalid');
         }
       });
-      
-      if (!isValid) {
+      if (!ok) {
         e.preventDefault();
         alert('Preencha todos os campos obrigatórios.');
       }
     });
 
-    // Loading state for GCS button
+    // Loading no botão GCS
     document.querySelector('a[href*="carregar"]')?.addEventListener('click', function() {
-      this.innerHTML = 'Carregando...';
-      this.style.opacity = '0.7';
+      this.classList.add('is-loading');
+      this.innerHTML = '<span class="spinner" aria-hidden="true"></span> Carregando...';
     });
   </script>
 </body>
