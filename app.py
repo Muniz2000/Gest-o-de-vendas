@@ -14,7 +14,7 @@ matplotlib.use("Agg")  # backend headless para servidores
 import matplotlib.pyplot as plt
 
 import pandas as pd
-from flask import Flask, redirect, url_for, request, render_template_string, abort
+from flask import Flask, redirect, url_for, request, render_template, abort
 from flask_sqlalchemy import SQLAlchemy
 from google.cloud import storage
 
@@ -31,7 +31,7 @@ def create_app() -> Flask:
         SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///vendas.db"),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         GCS_BUCKET_NAME=os.getenv("GCS_BUCKET_NAME", "").strip(),
-        GCS_BLOB_NAME=os.getenv("GCS_BLOB_NAME", "").strip(),  # exemplo: "vendas.xlsx"
+        GCS_BLOB_NAME=os.getenv("GCS_BLOB_NAME", "").strip(),
         SYNC_BACK_TO_GCS=os.getenv("SYNC_BACK_TO_GCS", "false").lower() == "true",
     )
 
@@ -216,87 +216,6 @@ def grafico_pizza() -> str:
     return fig_to_base64(fig)
 
 
-# =========================
-# Routes / Views
-# =========================
-INDEX_TEMPLATE = """
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8">
-  <title>Dashboard de Vendas</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-    header { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    a.button { background:#111; color:#fff; padding:10px 14px; border-radius:10px; text-decoration:none; }
-    a.button.light { background:#f2f2f2; color:#111; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px; margin-top:20px; }
-    figure { border:1px solid #e5e5e5; border-radius:12px; padding:12px; background:#fff; }
-    table { border-collapse: collapse; width:100%; font-size:14px; }
-    th, td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; }
-    .muted { color:#666; }
-    .id { color:#999; font-size:12px; }
-  </style>
-</head>
-<body>
-  <header>
-    <h1 style="margin:0;">Dashboard de Vendas</h1>
-    <a class="button" href="{{ url_for('carregar') }}">Recarregar do GCS</a>
-    <a class="button light" href="{{ url_for('healthz') }}">Health</a>
-  </header>
-
-  {% if error %}
-    <p class="muted">Erro: {{ error }}</p>
-  {% endif %}
-
-  <div class="grid">
-    <figure>
-      <figcaption><strong>Vendas por Produto (Barras)</strong></figcaption>
-      {% if chart_barras == 'Não gerado' %}
-        <p class="muted">Sem dados para gerar o gráfico.</p>
-      {% else %}
-        <img alt="Gráfico de Barras" style="max-width:100%" src="data:image/png;base64,{{ chart_barras }}">
-      {% endif %}
-    </figure>
-
-    <figure>
-      <figcaption><strong>Distribuição por Categoria (Pizza)</strong></figcaption>
-      {% if chart_pizza == 'Não gerado' %}
-        <p class="muted">Sem dados para gerar o gráfico.</p>
-      {% else %}
-        <img alt="Gráfico de Pizza" style="max-width:100%" src="data:image/png;base64,{{ chart_pizza }}">
-      {% endif %}
-    </figure>
-  </div>
-
-  <h2>Vendas</h2>
-  {% if vendas|length == 0 %}
-    <p class="muted">Nenhum registro carregado. Clique em <em>Recarregar do GCS</em>.</p>
-  {% else %}
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>Produto</th><th>Quantidade</th><th>Categoria</th><th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for v in vendas %}
-          <tr>
-            <td class="id">{{ v.id }}</td>
-            <td>{{ v.produto }}</td>
-            <td>{{ v.quantidade }}</td>
-            <td>{{ v.categoria }}</td>
-            <td><a href="{{ url_for('excluir', id=v.id) }}">Excluir</a></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endif %}
-</body>
-</html>
-"""
-
 def register_routes(app: Flask) -> None:
     @app.route("/")
     def index():
@@ -306,10 +225,9 @@ def register_routes(app: Flask) -> None:
             chart_pizza = grafico_pizza()
         except Exception as e:
             app.logger.exception("Falha ao gerar gráficos")
-            return render_template_string(INDEX_TEMPLATE, vendas=vendas, chart_barras=NAO_GERADO,
-                                          chart_pizza=NAO_GERADO, error=str(e))
-        return render_template_string(INDEX_TEMPLATE, vendas=vendas, chart_barras=chart_barras,
-                                      chart_pizza=chart_pizza, error=None)
+            return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None)
+
+        return render_template("index.html", vendas=vendas, chart_barras=chart_barras, chart_pizza=chart_pizza, error=None)
 
     @app.route("/carregar", methods=["GET"])
     def carregar():
