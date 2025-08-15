@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MPLBACKEND=Agg \
     PORT=5001 \
-    GCS_BUCKET_NAME="" \
-    GCS_BLOB_NAME=""
+    GCS_BUCKET_NAME="meu-bucket-pi" \
+    GCS_BLOB_NAME="VENDAS.xlsx"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libfreetype6 libjpeg62-turbo libpng16-16 libglib2.0-0 tzdata ca-certificates \
