@@ -19,7 +19,7 @@
       </div>
       <div class="actions">
         <a href="{{ url_for('carregar') }}" class="btn btn-primary">
-          <span class="btn__dot" aria-hidden="true"></span> Carregar GCS
+          <span class="btn__dot" aria-hidden="true"></span> Carregar
         </a>
         <button class="btn btn-success" onclick="openModal()">
           <span class="btn__plus" aria-hidden="true">+</span> Novo Produto
@@ -38,11 +38,6 @@
     <!-- Stats -->
     <section class="stats">
       <article class="stat card">
-        <div class="stat__label">Total de Produtos</div>
-        <div class="stat__value">{{ produtos|length }}</div>
-      </article>
-
-      <article class="stat card">
         <div class="stat__label">Produtos Únicos</div>
         <div class="stat__value">{{ produtos|map(attribute='produto')|unique|list|length }}</div>
       </article>
@@ -50,6 +45,11 @@
       <article class="stat card">
         <div class="stat__label">Categorias</div>
         <div class="stat__value">{{ produtos|map(attribute='categoria')|unique|list|length }}</div>
+      </article>
+
+      <article class="stat card">
+        <div class="stat__label">Total de Produtos</div>
+        <div class="stat__value">{{ produtos|length }}</div>
       </article>
     </section>
 

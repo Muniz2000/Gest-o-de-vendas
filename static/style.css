@@ -48,12 +48,19 @@ body{
   z-index:0;
 }
 
+/* Desktop/tablet */
 .container{
-  position:relative; z-index:1;
-  max-width:1200px;
-  margin:0 auto;
+  position: relative; z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: var(--space-4) var(--space-3);
 }
+
+/* Mobile: remove padding */
+@media (max-width: 639.98px){
+  .container{ padding: 0; }
+}
+
 
 /* Cards */
 .card{
