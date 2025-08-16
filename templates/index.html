@@ -49,7 +49,7 @@
 
       <article class="stat card">
         <div class="stat__label">Total de Produtos</div>
-        <div class="stat__value">{{ produtos|length }}</div>
+        <div class="stat__value">{{ produtos|sum(attribute='quantidade') }}</div>
       </article>
     </section>
 
