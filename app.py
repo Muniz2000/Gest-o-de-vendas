@@ -382,12 +382,19 @@ def grafico_pizza() -> str:
             loc="center left", bbox_to_anchor=(1.02, 0.5),
             frameon=True
         )
-        # ajusta a moldura da legenda para o dark
+
+        # moldura dark
         leg.get_frame().set_facecolor(panel)
         leg.get_frame().set_edgecolor(line)
 
+        # 🔹 texto em branco
+        import matplotlib.pyplot as plt
+        plt.setp(leg.get_texts(), color="#FFFFFF")   
+        leg.get_title().set_color("#FFFFFF")         
+
         fig.tight_layout(pad=1.2)
         return fig_to_base64(fig)
+
 
     except Exception:
         import traceback
