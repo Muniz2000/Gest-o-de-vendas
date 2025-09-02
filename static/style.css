@@ -97,30 +97,33 @@ body {
   right: 0;
 }
 
+/* Updated Accessibility Toggle Button for improved UI/UX */
 .accessibility-toggle {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-600));
   border: none;
   border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  color: white;
-  font-size: 24px;
+  width: 70px;
+  height: 70px;
+  color: #fff;
+  font-size: 28px;
   cursor: pointer;
   z-index: 1001;
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
+  box-shadow: 0px 8px 20px rgba(45,156,219,0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .accessibility-toggle:hover {
   transform: scale(1.1);
-  filter: brightness(1.1);
+  box-shadow: 0px 12px 25px rgba(45,156,219,0.7);
 }
 
+/* Retain focus styles */
 .accessibility-toggle:focus {
   outline: 3px solid #FFD700;
+  outline-offset: 2px;
 }
 
 .panel-header {

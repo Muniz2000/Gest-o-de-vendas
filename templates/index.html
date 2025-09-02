@@ -29,13 +29,13 @@
       <h3>Tamanho da Fonte</h3>
       <div class="font-size-controls" role="group" aria-label="Controles de tamanho da fonte">
         <button class="font-btn" onclick="AccessibilityManager.setFontSize('small')" 
-                aria-label="Fonte pequena">A</button>
+                aria-label="Fonte pequena">A-</button>
         <button class="font-btn active" onclick="AccessibilityManager.setFontSize('normal')" 
                 aria-label="Fonte normal">A</button>
         <button class="font-btn" onclick="AccessibilityManager.setFontSize('large')" 
-                aria-label="Fonte grande">A</button>
+                aria-label="Fonte grande">A+</button>
         <button class="font-btn" onclick="AccessibilityManager.setFontSize('extra-large')" 
-                aria-label="Fonte extra grande">A</button>
+                aria-label="Fonte extra grande">A++</button>
       </div>
     </div>
 
@@ -44,36 +44,19 @@
       <div class="control-group">
         <div class="control-item">
           <label for="high-contrast">Alto Contraste</label>
-          <div class="toggle-switch">
+          <label class="toggle-switch">
             <input type="checkbox" id="high-contrast" onchange="AccessibilityManager.toggleHighContrast()">
             <span class="slider"></span>
-          </div>
+          </label>
         </div>
         
         <div class="control-item">
           <label for="reduce-motion">Reduzir Animações</label>
-          <div class="toggle-switch">
+          <label class="toggle-switch">
             <input type="checkbox" id="reduce-motion" onchange="AccessibilityManager.toggleReducedMotion()">
             <span class="slider"></span>
-          </div>
+          </label>
         </div>
-      </div>
-    </div>
-
-    <div class="panel-section">
-      <h3>Navegação por Voz</h3>
-      <div class="control-group">
-        <div class="control-item">
-          <label for="voice-navigation">Ativar Comandos de Voz</label>
-          <div class="toggle-switch">
-            <input type="checkbox" id="voice-navigation" onchange="AccessibilityManager.toggleVoiceNavigation()">
-            <span class="slider"></span>
-          </div>
-        </div>
-        
-        <button class="btn btn-primary" onclick="AccessibilityManager.showVoiceCommands()">
-          Comandos Disponíveis
-        </button>
       </div>
     </div>
 
@@ -82,10 +65,10 @@
       <div class="control-group">
         <div class="control-item">
           <label for="screen-reader">Narração Automática</label>
-          <div class="toggle-switch">
+          <label class="toggle-switch">
             <input type="checkbox" id="screen-reader" onchange="AccessibilityManager.toggleScreenReader()">
             <span class="slider"></span>
-          </div>
+          </label>
         </div>
         
         <button class="btn" onclick="AccessibilityManager.readCurrentPage()">
