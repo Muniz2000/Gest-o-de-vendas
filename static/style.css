@@ -399,72 +399,49 @@ input:checked + .slider:before {
 
 .alert__icon { font-size: 1.1rem; }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-areas:
-    "a b"
-    "c c";
+/* Stats */
+.stats{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
   gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
-
-.stat {
+.stat{
   padding: var(--space-4);
+  grid-column: span 4; /* desktop: 3 por linha */
+}
+.stat__label{ color:var(--muted); font-weight:500; margin-bottom:.35rem; }
+.stat__value{ font-size:1.6rem; font-weight:700; letter-spacing:.2px; }
+.stat__trend{ margin-top:.35rem; font-size:.9rem; opacity:.9; }
+.stat__trend.up{ color:#7dd3fc; }
+
+/* Tablet: ainda cabe 3 por linha ou 2/2/2, conforme preferir */
+@media (max-width: 992px){
+  .stats{ grid-template-columns: repeat(12, 1fr); }
+  .stat{ grid-column: span 4; }
 }
 
-.stat:nth-child(1) { grid-area: a; }
-.stat:nth-child(2) { grid-area: b; }
-.stat:nth-child(3) {
-  grid-area: c;
-  max-width: 80%;
-  margin: 0 auto;
-}
-
-.stat__label {
-  color: var(--muted);
-  font-weight: 500;
-  margin-bottom: .35rem;
-}
-
-.stat__value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: .2px;
-}
-
-@media (max-width: 992px) {
-  .stats { grid-template-columns: repeat(12, 1fr); }
-  .stat { grid-column: span 4; }
-}
-
-@media (max-width: 640px) {
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-areas:
-      "a b"
-      "c c";
-    gap: var(--space-3);
+/* Mobile (pirâmide): 2 colunas; o 3º item ocupa a linha inteira */
+@media (max-width: 640px){
+  .stats{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .stat:nth-child(1) { grid-area: a; }
-  .stat:nth-child(2) { grid-area: b; }
-  .stat:nth-child(3) {
-    grid-area: c;
-    max-width: 80%;
-    margin: 0 auto;
+  .stat{
+    grid-column: auto; /* cada um ocupa 1 coluna por padrão */
+  }
+  .stats > .stat:nth-child(3){
+    grid-column: 1 / -1; /* full width = base da pirâmide */
   }
 }
 
-@media (max-width: 360px) {
-  .stats {
+/* Extra pequeno: se a tela ficar MUITO estreita, empilha 1/1/1 */
+@media (max-width: 360px){
+  .stats{
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "a"
-      "b"
-      "c";
   }
-  .stat { width: 100%; margin: 0; }
+  .stat{
+    grid-column: 1 / -1;
+  }
 }
 
 .table-wrapper {
