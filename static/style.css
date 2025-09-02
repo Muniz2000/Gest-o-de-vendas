@@ -100,8 +100,8 @@ body {
 /* Updated Accessibility Toggle Button for improved UI/UX */
 .accessibility-toggle {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 80px;
+  right: 23px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
