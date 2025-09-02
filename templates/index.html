@@ -3,229 +3,941 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Painel de Produtos</title>
+  <title>Painel de Produtos Acessível</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
+  <!-- Skip Link for Screen Readers -->
+  <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+
+  <!-- Accessibility Toggle Button -->
+  <button class="accessibility-toggle" onclick="AccessibilityManager.togglePanel()" 
+          aria-label="Abrir painel de acessibilidade" title="Acessibilidade">
+    ♿
+  </button>
+
+  <!-- Accessibility Panel -->
+  <div class="accessibility-panel" id="accessibilityPanel" role="dialog" aria-labelledby="accessibility-title">
+    <div class="panel-header">
+      <h2 id="accessibility-title">Configurações de Acessibilidade</h2>
+      <button class="close-btn" onclick="AccessibilityManager.closePanel()" 
+              aria-label="Fechar painel de acessibilidade">×</button>
+    </div>
+
+    <div class="panel-section">
+      <h3>Tamanho da Fonte</h3>
+      <div class="font-size-controls" role="group" aria-label="Controles de tamanho da fonte">
+        <button class="font-btn" onclick="AccessibilityManager.setFontSize('small')" 
+                aria-label="Fonte pequena">A</button>
+        <button class="font-btn active" onclick="AccessibilityManager.setFontSize('normal')" 
+                aria-label="Fonte normal">A</button>
+        <button class="font-btn" onclick="AccessibilityManager.setFontSize('large')" 
+                aria-label="Fonte grande">A</button>
+        <button class="font-btn" onclick="AccessibilityManager.setFontSize('extra-large')" 
+                aria-label="Fonte extra grande">A</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Configurações Visuais</h3>
+      <div class="control-group">
+        <div class="control-item">
+          <label for="high-contrast">Alto Contraste</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="high-contrast" onchange="AccessibilityManager.toggleHighContrast()">
+            <span class="slider"></span>
+          </div>
+        </div>
+        
+        <div class="control-item">
+          <label for="reduce-motion">Reduzir Animações</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="reduce-motion" onchange="AccessibilityManager.toggleReducedMotion()">
+            <span class="slider"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Navegação por Voz</h3>
+      <div class="control-group">
+        <div class="control-item">
+          <label for="voice-navigation">Ativar Comandos de Voz</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="voice-navigation" onchange="AccessibilityManager.toggleVoiceNavigation()">
+            <span class="slider"></span>
+          </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="AccessibilityManager.showVoiceCommands()">
+          Comandos Disponíveis
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Leitor de Tela</h3>
+      <div class="control-group">
+        <div class="control-item">
+          <label for="screen-reader">Narração Automática</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="screen-reader" onchange="AccessibilityManager.toggleScreenReader()">
+            <span class="slider"></span>
+          </div>
+        </div>
+        
+        <button class="btn" onclick="AccessibilityManager.readCurrentPage()">
+          🔊 Ler Página Atual
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Commands Indicator -->
+  <div class="voice-indicator" id="voiceIndicator" aria-live="polite">
+    🎤 Escutando comandos de voz...
+  </div>
+
+  <!-- Background -->
   <div class="bg-radial"></div>
 
   <div class="container">
-    <!-- Header -->
-    <header class="header card">
-      <div class="header__left">
-        <h1 class="title">Dashboard de Produtos</h1>
-        <p class="subtitle">Acompanhe seus itens em tempo real</p>
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- Header -->
+      <header class="header card" role="banner">
+        <div class="header__left">
+          <h1 class="title">Dashboard de Produtos</h1>
+          <p class="subtitle">Acompanhe seus itens em tempo real</p>
+        </div>
+        <div class="actions">
+          <a href="{{ url_for('carregar') }}" class="btn btn-primary" 
+             aria-describedby="load-help">
+            <span class="btn__dot" aria-hidden="true"></span> 
+            Carregar
+          </a>
+          <span id="load-help" class="sr-only">Carrega produtos de fonte externa</span>
+          
+          <button class="btn btn-success" onclick="ProductModal.open()" 
+                  aria-describedby="add-help">
+            <span class="btn__plus" aria-hidden="true">+</span> 
+            Novo Produto
+          </button>
+          <span id="add-help" class="sr-only">Abre formulário para adicionar novo produto</span>
+        </div>
+      </header>
+
+      <!-- Error Alert -->
+      {% if error %}
+      <div class="alert card" role="alert" aria-live="polite">
+        <span class="alert__icon" aria-hidden="true">⚠️</span>
+        <div>{{ error }}</div>
       </div>
-      <div class="actions">
-        <a href="{{ url_for('carregar') }}" class="btn btn-primary">
-          <span class="btn__dot" aria-hidden="true"></span> Carregar
-        </a>
-        <button class="btn btn-success" onclick="openModal()">
-          <span class="btn__plus" aria-hidden="true">+</span> Novo Produto
-        </button>
-      </div>
-    </header>
+      {% endif %}
 
-    <!-- Error Alert -->
-    {% if error %}
-    <div class="alert card" role="alert">
-      <span class="alert__icon" aria-hidden="true">⚠️</span>
-      <div>{{ error }}</div>
-    </div>
-    {% endif %}
+      <!-- Statistics Section -->
+      <section class="stats" aria-labelledby="stats-title">
+        <h2 id="stats-title" class="sr-only">Estatísticas do Dashboard</h2>
+        
+        <article class="stat card" role="region" aria-labelledby="unique-products">
+          <div class="stat__label" id="unique-products">Produtos Únicos</div>
+          <div class="stat__value" aria-describedby="unique-products">
+            {{ produtos|map(attribute='produto')|unique|list|length }}
+          </div>
+        </article>
 
-    <!-- Stats -->
-    <section class="stats">
-      <article class="stat card">
-        <div class="stat__label">Produtos Únicos</div>
-        <div class="stat__value">{{ produtos|map(attribute='produto')|unique|list|length }}</div>
-      </article>
+        <article class="stat card" role="region" aria-labelledby="categories">
+          <div class="stat__label" id="categories">Categorias</div>
+          <div class="stat__value" aria-describedby="categories">
+            {{ produtos|map(attribute='categoria')|unique|list|length }}
+          </div>
+        </article>
 
-      <article class="stat card">
-        <div class="stat__label">Categorias</div>
-        <div class="stat__value">{{ produtos|map(attribute='categoria')|unique|list|length }}</div>
-      </article>
+        <article class="stat card" role="region" aria-labelledby="total-stock">
+          <div class="stat__label" id="total-stock">Total em Estoque</div>
+          <div class="stat__value" aria-describedby="total-stock">
+            {{ produtos|sum(attribute='quantidade') }}
+          </div>
+        </article>
+      </section>
 
-      <article class="stat card">
-        <div class="stat__label">Total em Estoque</div>
-        <div class="stat__value">{{ produtos|sum(attribute='quantidade') }}</div>
-      </article>
-    </section>
+      <!-- Products Table -->
+      <section class="card" role="region" aria-labelledby="products-table-title">
+        <div class="card__header">
+          <h2 class="card__title" id="products-table-title">Produtos Cadastrados</h2>
+          <span class="sr-only">Tabela com {{ produtos|length }} produtos</span>
+        </div>
+        <div class="card__body">
+          <div class="table-wrapper" role="region" aria-label="Tabela de produtos com rolagem horizontal">
+            <table class="table" role="table" aria-describedby="table-description">
+              <caption class="sr-only" id="table-description">
+                Lista de produtos cadastrados com ID, nome, quantidade, categoria e ações disponíveis
+              </caption>
+              <thead>
+                <tr role="row">
+                  <th scope="col" tabindex="0">ID</th>
+                  <th scope="col" tabindex="0">Produto</th>
+                  <th scope="col" tabindex="0">Quantidade</th>
+                  <th scope="col" tabindex="0">Categoria</th>
+                  <th scope="col" tabindex="0">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in produtos %}
+                <tr role="row">
+                  <td><strong aria-label="ID do produto">#{{ item.id }}</strong></td>
+                  <td class="truncate" title="{{ item.produto }}">{{ item.produto }}</td>
+                  <td aria-label="Quantidade: {{ item.quantidade }} unidades">{{ item.quantidade }}</td>
+                  <td>
+                    <span class="badge" aria-label="Categoria: {{ item.categoria }}">
+                      {{ item.categoria }}
+                    </span>
+                  </td>
+                  <td>
+                    <a href="{{ url_for('excluir', id=item.id) }}" 
+                       class="btn btn-danger btn-icon" 
+                       onclick="return ConfirmationManager.confirm('Tem certeza que deseja excluir o produto {{ item.produto }}?')"
+                       aria-label="Excluir produto {{ item.produto }} (ID: {{ item.id }})"
+                       title="Excluir produto">×</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr role="row">
+                  <td colspan="5" class="text-center text-muted">
+                    <span role="status" aria-live="polite">Nenhum produto encontrado</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-    <!-- Products Table -->
-    <section class="card">
-      <div class="card__header">
-        <h2 class="card__title">Produtos Cadastrados</h2>
-      </div>
-      <div class="card__body">
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Produto</th>
-                <th>Qtd</th>
-                <th>Categoria</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for item in produtos %}
-              <tr>
-                <td><strong>#{{ item.id }}</strong></td>
-                <td class="truncate">{{ item.produto }}</td>
-                <td>{{ item.quantidade }}</td>
-                <td><span class="badge">{{ item.categoria }}</span></td>
-                <td>
-                  <a href="{{ url_for('excluir', id=item.id) }}" class="btn btn-danger btn-icon" onclick="return confirm('Excluir?')"
-                     aria-label="Excluir produto #{{ item.id }}">×</a>
-                </td>
-              </tr>
+      <!-- Recent Items -->
+      {% if produtos %}
+      <section class="card" role="region" aria-labelledby="recent-title">
+        <div class="card__header">
+          <h2 class="card__title" id="recent-title">Últimos 5 Produtos</h2>
+        </div>
+        <div class="card__body">
+          <ul class="recent-items" aria-label="Lista dos 5 produtos mais recentes">
+            {% for item in produtos[-5:] %}
+            <li class="recent-item" role="listitem">
+              <div class="recent-item__meta">
+                <strong class="truncate" title="{{ item.produto }}">{{ item.produto }}</strong>
+                <span class="text-muted" aria-label="Categoria"> • {{ item.categoria }}</span>
+              </div>
+              <div class="quantity-badge" 
+                   title="Quantidade: {{ item.quantidade }}" 
+                   aria-label="Quantidade: {{ item.quantidade }} unidades">
+                {{ item.quantidade }}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Charts Section -->
+      <section class="charts" role="region" aria-labelledby="charts-title">
+        <h2 id="charts-title" class="sr-only">Gráficos e Visualizações</h2>
+        
+        <article class="card" role="img" aria-labelledby="bar-chart-title">
+          <div class="card__header">
+            <h3 class="card__title" id="bar-chart-title">Quantidade por Produto</h3>
+          </div>
+          <div class="card__body">
+            <div class="chart-container">
+              {% if chart_barras != "Não gerado" %}
+                <img src="data:image/png;base64,{{ chart_barras }}" 
+                     alt="Gráfico de barras mostrando a quantidade de cada produto em estoque" 
+                     role="img" />
               {% else %}
-              <tr>
-                <td colspan="5" class="text-center text-muted">Nenhum produto encontrado</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- Recent Items -->
-    {% if produtos %}
-    <section class="card">
-      <div class="card__header">
-        <h2 class="card__title">Últimos 5 Produtos</h2>
-      </div>
-      <div class="card__body">
-        <ul class="recent-items">
-          {% for item in produtos[-5:] %}
-          <li class="recent-item">
-            <div class="recent-item__meta">
-              <strong class="truncate">{{ item.produto }}</strong>
-              <span class="text-muted"> • {{ item.categoria }}</span>
+                <div class="empty-state" role="status">
+                  <p>Gráfico não disponível</p>
+                </div>
+              {% endif %}
             </div>
-            <div class="quantity-badge" title="Quantidade">{{ item.quantidade }}</div>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </section>
-    {% endif %}
-
-    <!-- Charts -->
-    <section class="charts">
-      <article class="card">
-        <div class="card__header">
-          <h2 class="card__title">Quantidade por Produto</h2>
-        </div>
-        <div class="card__body">
-          <div class="chart-container">
-            {% if chart_barras != "Não gerado" %}
-              <img src="data:image/png;base64,{{ chart_barras }}" alt="Gráfico de barras - Quantidade por Produto" />
-            {% else %}
-              <div class="empty-state">
-                <p>Gráfico não disponível</p>
-              </div>
-            {% endif %}
           </div>
-        </div>
-      </article>
+        </article>
 
-      <article class="card">
-        <div class="card__header">
-          <h2 class="card__title">Distribuição por Categoria</h2>
-        </div>
-        <div class="card__body">
-          <div class="chart-container">
-            {% if chart_pizza != "Não gerado" %}
-              <img src="data:image/png;base64,{{ chart_pizza }}" alt="Gráfico de pizza - Distribuição por Categoria" />
-            {% else %}
-              <div class="empty-state">
-                <p>Gráfico não disponível</p>
-              </div>
-            {% endif %}
+        <article class="card" role="img" aria-labelledby="pie-chart-title">
+          <div class="card__header">
+            <h3 class="card__title" id="pie-chart-title">Distribuição por Categoria</h3>
           </div>
-        </div>
-      </article>
-    </section>
+          <div class="card__body">
+            <div class="chart-container">
+              {% if chart_pizza != "Não gerado" %}
+                <img src="data:image/png;base64,{{ chart_pizza }}" 
+                     alt="Gráfico de pizza mostrando a distribuição percentual de produtos por categoria" 
+                     role="img" />
+              {% else %}
+                <div class="empty-state" role="status">
+                  <p>Gráfico não disponível</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
   </div>
 
-  <!-- Modal -->
+  <!-- Product Modal -->
   <div class="modal" id="productModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal__overlay" onclick="closeModal()"></div>
+    <div class="modal__overlay" onclick="ProductModal.close()"></div>
     <div class="modal__content card" role="document">
       <div class="modal__header">
         <h2 id="modalTitle" class="modal__title">Novo Produto</h2>
-        <button class="close-btn" onclick="closeModal()" aria-label="Fechar modal">×</button>
+        <button class="close-btn" onclick="ProductModal.close()" 
+                aria-label="Fechar modal de novo produto">×</button>
       </div>
-      <form method="POST" action="{{ url_for('adicionar') }}">
+      <form method="POST" action="{{ url_for('adicionar') }}" id="productForm" novalidate>
         <div class="form-group">
-          <label class="form-label" for="produto">Produto</label>
-          <input id="produto" type="text" name="produto" class="form-input" required placeholder="Nome do produto" />
+          <label class="form-label" for="produto">
+            Produto <span aria-label="campo obrigatório">*</span>
+          </label>
+          <input id="produto" 
+                 type="text" 
+                 name="produto" 
+                 class="form-input" 
+                 required 
+                 placeholder="Nome do produto"
+                 aria-describedby="produto-help" 
+                 autocomplete="off" />
+          <div id="produto-help" class="sr-only">Digite o nome do produto</div>
         </div>
+        
         <div class="form-group">
-          <label class="form-label" for="quantidade">Quantidade</label>
-          <input id="quantidade" type="number" name="quantidade" class="form-input" min="1" required placeholder="Quantidade" />
+          <label class="form-label" for="quantidade">
+            Quantidade <span aria-label="campo obrigatório">*</span>
+          </label>
+          <input id="quantidade" 
+                 type="number" 
+                 name="quantidade" 
+                 class="form-input" 
+                 min="1" 
+                 max="999999"
+                 required 
+                 placeholder="Quantidade"
+                 aria-describedby="quantidade-help" />
+          <div id="quantidade-help" class="sr-only">Digite a quantidade em estoque (mínimo 1)</div>
         </div>
+        
         <div class="form-group">
-          <label class="form-label" for="categoria">Categoria</label>
-          <input id="categoria" type="text" name="categoria" class="form-input" required placeholder="Categoria" />
+          <label class="form-label" for="categoria">
+            Categoria <span aria-label="campo obrigatório">*</span>
+          </label>
+          <input id="categoria" 
+                 type="text" 
+                 name="categoria" 
+                 class="form-input" 
+                 required 
+                 placeholder="Categoria"
+                 aria-describedby="categoria-help"
+                 autocomplete="off" />
+          <div id="categoria-help" class="sr-only">Digite a categoria do produto</div>
         </div>
+        
         <div class="form-actions">
-          <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn" onclick="ProductModal.close()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Salvar Produto
+          </button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- FAB (Mobile) -->
-  <button class="fab" onclick="openModal()" aria-label="Adicionar novo produto">+</button>
+  <button class="fab" onclick="ProductModal.open()" 
+          aria-label="Adicionar novo produto" 
+          title="Adicionar produto">+</button>
+
+  <!-- Screen Reader Announcements -->
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="announcements"></div>
 
   <script>
-    // Modal
-    function openModal() {
-      const m = document.getElementById('productModal');
-      m.classList.add('show');
-      document.body.style.overflow = 'hidden';
-      setTimeout(() => document.getElementById('produto')?.focus(), 0);
-    }
-    function closeModal() {
-      const m = document.getElementById('productModal');
-      m.classList.remove('show');
-      document.body.style.overflow = 'auto';
-    }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
-    });
-
-    // Validação simples
-    const form = document.querySelector('form');
-    form?.addEventListener('submit', function(e) {
-      const inputs = this.querySelectorAll('input[required]');
-      let ok = true;
-      inputs.forEach((i) => {
-        if (!i.value.trim()) {
-          i.classList.add('invalid');
-          ok = false;
-        } else {
-          i.classList.remove('invalid');
+    // Accessibility Manager - Clean Code Implementation
+    const AccessibilityManager = {
+      // Configuration
+      config: {
+        voiceCommands: {
+          'novo produto': () => ProductModal.open(),
+          'adicionar produto': () => ProductModal.open(),
+          'fechar': () => ProductModal.close(),
+          'cancelar': () => ProductModal.close(),
+          'salvar': () => FormValidator.submit(),
+          'carregar': () => window.location.href = "{{ url_for('carregar') }}",
+          'acessibilidade': () => AccessibilityManager.togglePanel(),
+          'ler página': () => AccessibilityManager.readCurrentPage()
+        },
+        speechOptions: {
+          lang: 'pt-BR',
+          rate: 0.9,
+          pitch: 1,
+          volume: 0.8
         }
-      });
-      if (!ok) {
-        e.preventDefault();
-        alert('Preencha todos os campos obrigatórios.');
+      },
+
+      // State
+      state: {
+        panelOpen: false,
+        voiceActive: false,
+        screenReaderActive: false,
+        recognition: null,
+        synthesis: window.speechSynthesis
+      },
+
+      // Initialize accessibility features
+      init() {
+        this.setupKeyboardNavigation();
+        this.setupVoiceRecognition();
+        this.loadUserPreferences();
+        this.announcePageLoad();
+      },
+
+      // Panel Management
+      togglePanel() {
+        const panel = document.getElementById('accessibilityPanel');
+        this.state.panelOpen = !this.state.panelOpen;
+        
+        if (this.state.panelOpen) {
+          panel.classList.add('open');
+          document.body.style.overflow = 'hidden';
+          panel.querySelector('.close-btn').focus();
+          this.announce('Painel de acessibilidade aberto');
+        } else {
+          this.closePanel();
+        }
+      },
+
+      closePanel() {
+        const panel = document.getElementById('accessibilityPanel');
+        panel.classList.remove('open');
+        document.body.style.overflow = 'auto';
+        this.state.panelOpen = false;
+        document.querySelector('.accessibility-toggle').focus();
+        this.announce('Painel de acessibilidade fechado');
+      },
+
+      // Font Size Management
+      setFontSize(size) {
+        const sizeMap = {
+          'small': '0.875em',
+          'normal': '1em',
+          'large': '1.25em',
+          'extra-large': '1.5em'
+        };
+
+        document.documentElement.style.setProperty('--font-size-base', 
+          `calc(15px * ${sizeMap[size].replace('em', '')})`);
+        
+        // Update active button
+        document.querySelectorAll('.font-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        // Save preference
+        localStorage.setItem('fontSize', size);
+        this.announce(`Tamanho da fonte alterado para ${size}`);
+      },
+
+      // Theme Management
+      toggleHighContrast() {
+        const isEnabled = document.getElementById('high-contrast').checked;
+        document.documentElement.setAttribute('data-theme', 
+          isEnabled ? 'high-contrast' : 'default');
+        
+        localStorage.setItem('highContrast', isEnabled);
+        this.announce(isEnabled ? 'Alto contraste ativado' : 'Alto contraste desativado');
+      },
+
+      toggleReducedMotion() {
+        const isEnabled = document.getElementById('reduce-motion').checked;
+        document.documentElement.style.setProperty('--animation-speed', 
+          isEnabled ? '0.01ms' : '0.3s');
+        
+        localStorage.setItem('reducedMotion', isEnabled);
+        this.announce(isEnabled ? 'Animações reduzidas' : 'Animações normais');
+      },
+
+      // Voice Navigation
+      toggleVoiceNavigation() {
+        const isEnabled = document.getElementById('voice-navigation').checked;
+        
+        if (isEnabled) {
+          this.startVoiceRecognition();
+        } else {
+          this.stopVoiceRecognition();
+        }
+        
+        localStorage.setItem('voiceNavigation', isEnabled);
+      },
+
+      startVoiceRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          this.announce('Reconhecimento de voz não suportado neste navegador');
+          return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.state.recognition = new SpeechRecognition();
+        
+        this.state.recognition.continuous = true;
+        this.state.recognition.interimResults = false;
+        this.state.recognition.lang = 'pt-BR';
+
+        this.state.recognition.onstart = () => {
+          this.state.voiceActive = true;
+          document.getElementById('voiceIndicator').classList.add('active');
+          this.announce('Comandos de voz ativados');
+        };
+
+        this.state.recognition.onresult = (event) => {
+          const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          this.executeVoiceCommand(command);
+        };
+
+        this.state.recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          this.announce('Erro no reconhecimento de voz');
+        };
+
+        this.state.recognition.onend = () => {
+          if (this.state.voiceActive) {
+            this.state.recognition.start(); // Restart for continuous listening
+          }
+        };
+
+        this.state.recognition.start();
+      },
+
+      stopVoiceRecognition() {
+        this.state.voiceActive = false;
+        if (this.state.recognition) {
+          this.state.recognition.stop();
+        }
+        document.getElementById('voiceIndicator').classList.remove('active');
+        this.announce('Comandos de voz desativados');
+      },
+
+      executeVoiceCommand(command) {
+        const commandHandler = this.config.voiceCommands[command];
+        if (commandHandler) {
+          this.announce(`Executando comando: ${command}`);
+          commandHandler();
+        } else {
+          this.announce('Comando não reconhecido');
+        }
+      },
+
+      showVoiceCommands() {
+        const commands = Object.keys(this.config.voiceCommands).join(', ');
+        this.speak(`Comandos disponíveis: ${commands}`);
+      },
+
+      // Screen Reader
+      toggleScreenReader() {
+        this.state.screenReaderActive = document.getElementById('screen-reader').checked;
+        localStorage.setItem('screenReader', this.state.screenReaderActive);
+        
+        if (this.state.screenReaderActive) {
+          this.announce('Leitor de tela ativado');
+          this.readCurrentPage();
+        } else {
+          this.announce('Leitor de tela desativado');
+          this.state.synthesis.cancel();
+        }
+      },
+
+      readCurrentPage() {
+        if (!this.state.synthesis) return;
+        
+        this.state.synthesis.cancel();
+        
+        const content = this.getPageContent();
+        this.speak(content);
+      },
+
+      getPageContent() {
+        const title = document.querySelector('.title').textContent;
+        const stats = Array.from(document.querySelectorAll('.stat')).map(stat => {
+          const label = stat.querySelector('.stat__label').textContent;
+          const value = stat.querySelector('.stat__value').textContent;
+          return `${label}: ${value}`;
+        }).join(', ');
+        
+        const productCount = document.querySelectorAll('.table tbody tr').length;
+        
+        return `${title}. Estatísticas: ${stats}. ${productCount} produtos na tabela.`;
+      },
+
+      // Speech Synthesis
+      speak(text) {
+        if (!this.state.synthesis) return;
+        
+        this.state.synthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        Object.assign(utterance, this.config.speechOptions);
+        this.state.synthesis.speak(utterance);
+      },
+
+      // Announcements
+      announce(message) {
+        const announcer = document.getElementById('announcements');
+        announcer.textContent = message;
+        
+        if (this.state.screenReaderActive) {
+          this.speak(message);
+        }
+      },
+
+      announcePageLoad() {
+        setTimeout(() => {
+          this.announce('Dashboard de produtos carregado. Use o botão de acessibilidade no canto superior direito para configurar suas preferências.');
+        }, 1000);
+      },
+
+      // Keyboard Navigation
+      setupKeyboardNavigation() {
+        document.addEventListener('keydown', (event) => {
+          // ESC key
+          if (event.key === 'Escape') {
+            if (this.state.panelOpen) {
+              this.closePanel();
+            } else if (ProductModal.isOpen()) {
+              ProductModal.close();
+            }
+          }
+          
+          // Alt + A for accessibility panel
+          if (event.altKey && event.key === 'a') {
+            event.preventDefault();
+            this.togglePanel();
+          }
+          
+          // Alt + N for new product
+          if (event.altKey && event.key === 'n') {
+            event.preventDefault();
+            ProductModal.open();
+          }
+        });
+      },
+
+      // Voice Recognition Setup
+      setupVoiceRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          document.getElementById('voice-navigation').disabled = true;
+          document.getElementById('voice-navigation').parentElement.parentElement.style.opacity = '0.5';
+        }
+      },
+
+      // Load User Preferences
+      loadUserPreferences() {
+        // Load font size
+        const savedFontSize = localStorage.getItem('fontSize') || 'normal';
+        this.setFontSize(savedFontSize);
+        
+        // Load high contrast
+        const highContrast = localStorage.getItem('highContrast') === 'true';
+        document.getElementById('high-contrast').checked = highContrast;
+        if (highContrast) this.toggleHighContrast();
+        
+        // Load reduced motion
+        const reducedMotion = localStorage.getItem('reducedMotion') === 'true';
+        document.getElementById('reduce-motion').checked = reducedMotion;
+        if (reducedMotion) this.toggleReducedMotion();
+        
+        // Load voice navigation
+        const voiceNav = localStorage.getItem('voiceNavigation') === 'true';
+        document.getElementById('voice-navigation').checked = voiceNav;
+        if (voiceNav) this.startVoiceRecognition();
+        
+        // Load screen reader
+        const screenReader = localStorage.getItem('screenReader') === 'true';
+        document.getElementById('screen-reader').checked = screenReader;
+        this.state.screenReaderActive = screenReader;
       }
+    };
+
+    // Product Modal Manager - Clean Code
+    const ProductModal = {
+      state: {
+        isModalOpen: false
+      },
+
+      open() {
+        const modal = document.getElementById('productModal');
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        this.state.isModalOpen = true;
+        
+        // Focus first input with delay for screen readers
+        setTimeout(() => {
+          const firstInput = document.getElementById('produto');
+          firstInput?.focus();
+        }, 100);
+        
+        AccessibilityManager.announce('Modal de novo produto aberto');
+      },
+
+      close() {
+        const modal = document.getElementById('productModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+        this.state.isModalOpen = false;
+        
+        // Reset form
+        FormValidator.resetForm();
+        
+        // Return focus to trigger button
+        document.querySelector('.btn-success')?.focus();
+        AccessibilityManager.announce('Modal fechado');
+      },
+
+      isOpen() {
+        return this.state.isModalOpen;
+      }
+    };
+
+    // Form Validation Manager - Clean Code
+    const FormValidator = {
+      init() {
+        const form = document.getElementById('productForm');
+        if (!form) return;
+        
+        form.addEventListener('submit', this.handleSubmit.bind(this));
+        
+        // Real-time validation
+        form.querySelectorAll('input[required]').forEach(input => {
+          input.addEventListener('blur', () => this.validateField(input));
+          input.addEventListener('input', () => this.clearFieldError(input));
+        });
+      },
+
+      handleSubmit(event) {
+        event.preventDefault();
+        
+        if (this.validateForm()) {
+          AccessibilityManager.announce('Formulário válido, salvando produto...');
+          event.target.submit();
+        } else {
+          AccessibilityManager.announce('Formulário contém erros. Verifique os campos destacados.');
+        }
+      },
+
+      validateForm() {
+        const form = document.getElementById('productForm');
+        const inputs = form.querySelectorAll('input[required]');
+        let isValid = true;
+        let firstInvalidField = null;
+
+        inputs.forEach(input => {
+          if (!this.validateField(input)) {
+            isValid = false;
+            if (!firstInvalidField) {
+              firstInvalidField = input;
+            }
+          }
+        });
+
+        if (!isValid && firstInvalidField) {
+          firstInvalidField.focus();
+        }
+
+        return isValid;
+      },
+
+      validateField(field) {
+        const value = field.value.trim();
+        const isValid = value.length > 0;
+        
+        if (field.type === 'number') {
+          const numValue = parseInt(value);
+          const isValidNumber = !isNaN(numValue) && numValue >= 1;
+          
+          if (!isValidNumber) {
+            this.showFieldError(field, 'Digite uma quantidade válida (mínimo 1)');
+            return false;
+          }
+        }
+        
+        if (!isValid) {
+          this.showFieldError(field, 'Este campo é obrigatório');
+          return false;
+        }
+        
+        this.clearFieldError(field);
+        return true;
+      },
+
+      showFieldError(field, message) {
+        field.classList.add('invalid');
+        field.setAttribute('aria-invalid', 'true');
+        field.setAttribute('aria-describedby', `${field.id}-error`);
+        
+        // Remove existing error message
+        const existingError = document.getElementById(`${field.id}-error`);
+        if (existingError) {
+          existingError.remove();
+        }
+        
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.id = `${field.id}-error`;
+        errorDiv.className = 'form-error sr-only';
+        errorDiv.textContent = message;
+        errorDiv.setAttribute('role', 'alert');
+        
+        field.parentElement.appendChild(errorDiv);
+        AccessibilityManager.announce(message);
+      },
+
+      clearFieldError(field) {
+        field.classList.remove('invalid');
+        field.removeAttribute('aria-invalid');
+        
+        const errorDiv = document.getElementById(`${field.id}-error`);
+        if (errorDiv) {
+          errorDiv.remove();
+        }
+      },
+
+      resetForm() {
+        const form = document.getElementById('productForm');
+        if (!form) return;
+        
+        form.reset();
+        form.querySelectorAll('input').forEach(input => {
+          this.clearFieldError(input);
+        });
+      },
+
+      submit() {
+        const submitBtn = document.querySelector('#productForm button[type="submit"]');
+        submitBtn?.click();
+      }
+    };
+
+    // Confirmation Manager - Clean Code
+    const ConfirmationManager = {
+      confirm(message) {
+        const userConfirmed = window.confirm(message);
+        
+        if (userConfirmed) {
+          AccessibilityManager.announce('Ação confirmada');
+        } else {
+          AccessibilityManager.announce('Ação cancelada');
+        }
+        
+        return userConfirmed;
+      }
+    };
+
+    // Loading Manager - Clean Code
+    const LoadingManager = {
+      init() {
+        const loadButton = document.querySelector('a[href*="carregar"]');
+        if (loadButton) {
+          loadButton.addEventListener('click', this.handleLoadClick);
+        }
+      },
+
+      handleLoadClick(event) {
+        const button = event.target.closest('.btn');
+        button.classList.add('is-loading');
+        button.innerHTML = '<span class="spinner" aria-hidden="true"></span> Carregando...';
+        AccessibilityManager.announce('Carregando dados...');
+      }
+    };
+
+    // Enhanced Keyboard Navigation
+    const KeyboardManager = {
+      init() {
+        this.setupTableNavigation();
+        this.setupModalNavigation();
+      },
+
+      setupTableNavigation() {
+        const table = document.querySelector('.table');
+        if (!table) return;
+
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((row, index) => {
+          row.addEventListener('keydown', (event) => {
+            switch(event.key) {
+              case 'ArrowUp':
+                event.preventDefault();
+                this.focusRow(index - 1, rows);
+                break;
+              case 'ArrowDown':
+                event.preventDefault();
+                this.focusRow(index + 1, rows);
+                break;
+              case 'Enter':
+              case ' ':
+                event.preventDefault();
+                const deleteBtn = row.querySelector('.btn-danger');
+                deleteBtn?.click();
+                break;
+            }
+          });
+        });
+      },
+
+      focusRow(index, rows) {
+        if (index >= 0 && index < rows.length) {
+          rows[index].focus();
+          const productName = rows[index].cells[1].textContent;
+          AccessibilityManager.announce(`Linha ${index + 1}: ${productName}`);
+        }
+      },
+
+      setupModalNavigation() {
+        document.addEventListener('keydown', (event) => {
+          if (!ProductModal.isOpen()) return;
+          
+          if (event.key === 'Tab') {
+            this.trapFocus(event);
+          }
+        });
+      },
+
+      trapFocus(event) {
+        const modal = document.getElementById('productModal');
+        const focusableElements = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    // Initialize all managers when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      AccessibilityManager.init();
+      FormValidator.init();
+      LoadingManager.init();
+      KeyboardManager.init();
     });
 
-    // Loading no botão GCS
-    document.querySelector('a[href*="carregar"]')?.addEventListener('click', function() {
-      this.classList.add('is-loading');
-      this.innerHTML = '<span class="spinner" aria-hidden="true"></span> Carregando...';
-    });
+    // Export for backward compatibility
+    window.openModal = () => ProductModal.open();
+    window.closeModal = () => ProductModal.close();
   </script>
 </body>
 </html>
