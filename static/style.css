@@ -401,14 +401,24 @@ input:checked + .slider:before {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-areas:
+    "a b"
+    "c c";
   gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
 
 .stat {
   padding: var(--space-4);
-  grid-column: span 4;
+}
+
+.stat:nth-child(1) { grid-area: a; }
+.stat:nth-child(2) { grid-area: b; }
+.stat:nth-child(3) {
+  grid-area: c;
+  max-width: 80%;
+  margin: 0 auto;
 }
 
 .stat__label {
