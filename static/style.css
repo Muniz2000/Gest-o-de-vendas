@@ -415,32 +415,49 @@ input:checked + .slider:before {
 .stat__trend{ margin-top:.35rem; font-size:.9rem; opacity:.9; }
 .stat__trend.up{ color:#7dd3fc; }
 
-/* Tablet: ainda cabe 3 por linha ou 2/2/2, conforme preferir */
-@media (max-width: 992px){
-  .stats{ grid-template-columns: repeat(12, 1fr); }
-  .stat{ grid-column: span 4; }
+/* Layout base - 3 colunas lado a lado */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-/* Mobile (pirâmide): 2 colunas; o 3º item ocupa a linha inteira */
-@media (max-width: 640px){
-  .stats{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Layout pirâmide para mobile */
+@media (max-width: 768px) {
+  .stats {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
   }
-  .stat{
-    grid-column: auto; /* cada um ocupa 1 coluna por padrão */
+  
+  /* Primeira linha: 2 cards lado a lado */
+  .stat:nth-child(1) {
+    grid-column: span 2;
   }
-  .stats > .stat:nth-child(3){
-    grid-column: 1 / -1; /* full width = base da pirâmide */
+  
+  .stat:nth-child(2) {
+    grid-column: span 2;
+  }
+  
+  /* Segunda linha: 1 card centralizado */
+  .stat:nth-child(3) {
+    grid-column: 2 / 4; /* ocupa as colunas centrais */
+    margin-top: 0.5rem;
   }
 }
 
-/* Extra pequeno: se a tela ficar MUITO estreita, empilha 1/1/1 */
-@media (max-width: 360px){
-  .stats{
+/* Para telas muito pequenas - empilha verticalmente */
+@media (max-width: 480px) {
+  .stats {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
-  .stat{
-    grid-column: 1 / -1;
+  
+  .stat:nth-child(1),
+  .stat:nth-child(2),
+  .stat:nth-child(3) {
+    grid-column: 1;
+    margin-top: 0;
   }
 }
 
