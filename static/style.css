@@ -399,35 +399,45 @@ input:checked + .slider:before {
 
 .alert__icon { font-size: 1.1rem; }
 
-/* Stats */
-.stats{
-  display:grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-.stat{
-  padding: var(--space-4);
-  grid-column: span 4; /* desktop: 3 por linha */
-}
-.stat__label{ color:var(--muted); font-weight:500; margin-bottom:.35rem; }
-.stat__value{ font-size:1.6rem; font-weight:700; letter-spacing:.2px; }
-.stat__trend{ margin-top:.35rem; font-size:.9rem; opacity:.9; }
-.stat__trend.up{ color:#7dd3fc; }
-
-/* Layout base - 3 colunas lado a lado */
+/* Stats - Layout Desktop e Pirâmide Mobile */
 .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.stat {
+  padding: var(--space-4);
+}
+
+.stat__label { 
+  color: var(--muted); 
+  font-weight: 500; 
+  margin-bottom: .35rem; 
+}
+
+.stat__value { 
+  font-size: 1.6rem; 
+  font-weight: 700; 
+  letter-spacing: .2px; 
+}
+
+.stat__trend { 
+  margin-top: .35rem; 
+  font-size: .9rem; 
+  opacity: .9; 
+}
+
+.stat__trend.up { 
+  color: #7dd3fc; 
 }
 
 /* Layout pirâmide para mobile */
 @media (max-width: 768px) {
   .stats {
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    gap: var(--space-2);
   }
   
   /* Primeira linha: 2 cards lado a lado */
@@ -441,7 +451,7 @@ input:checked + .slider:before {
   
   /* Segunda linha: 1 card centralizado */
   .stat:nth-child(3) {
-    grid-column: 2 / 4; /* ocupa as colunas centrais */
+    grid-column: 2 / 4;
     margin-top: 0.5rem;
   }
 }
@@ -450,7 +460,7 @@ input:checked + .slider:before {
 @media (max-width: 480px) {
   .stats {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-2);
   }
   
   .stat:nth-child(1),
