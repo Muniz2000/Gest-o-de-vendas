@@ -433,26 +433,30 @@ input:checked + .slider:before {
   color: #7dd3fc; 
 }
 
-/* Layout pirâmide para mobile */
+/* Layout pirâmide para mobile - 2 em cima, 1 embaixo */
 @media (max-width: 768px) {
   .stats {
-    grid-template-columns: repeat(4, 1fr);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto auto;
     gap: var(--space-2);
   }
   
-  /* Primeira linha: 2 cards lado a lado */
+  /* Primeira linha: os 2 primeiros cards ocupam toda a largura */
   .stat:nth-child(1) {
-    grid-column: span 2;
+    grid-column: 1;
+    grid-row: 1;
   }
   
   .stat:nth-child(2) {
-    grid-column: span 2;
+    grid-column: 2;
+    grid-row: 1;
   }
   
-  /* Segunda linha: 1 card centralizado */
+  /* Segunda linha: o terceiro card ocupa as 2 colunas (largura total) */
   .stat:nth-child(3) {
-    grid-column: 2 / 4;
-    margin-top: 0.5rem;
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }
 
@@ -460,14 +464,14 @@ input:checked + .slider:before {
 @media (max-width: 480px) {
   .stats {
     grid-template-columns: 1fr;
-    gap: var(--space-2);
+    grid-template-rows: auto;
   }
   
   .stat:nth-child(1),
   .stat:nth-child(2),
   .stat:nth-child(3) {
     grid-column: 1;
-    margin-top: 0;
+    grid-row: auto;
   }
 }
 
